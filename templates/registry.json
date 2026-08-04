@@ -1,0 +1,113 @@
+{
+  "_schema": "Each model entry tells Captain WHAT physics it fits and HOW to execute it.",
+
+  "fno": {
+    "class": "FNO1d",
+    "file": "fno/fno.py",
+    "source": "PDEBench official",
+
+    "physics": {
+      "suitable_for": [
+        "periodic boundary conditions",
+        "globally smooth solution fields",
+        "resolution-invariant prediction",
+        "parametric PDEs with varying coefficients"
+      ],
+      "weaknesses": [
+        "sharp discontinuities (shocks) — high frequencies truncated at modes cutoff",
+        "non-periodic boundaries require padding artifacts"
+      ],
+      "typical_error_pattern": "Seg1 fine → Seg3 divergence due to shock energy cascading into truncated modes"
+    },
+
+    "constructor": { "args": ["num_channels", "modes", "width", "initial_step"] },
+    "input_shape": "(B, N, T_in)",
+    "output_shape": "(B, N, 1, 1)",
+    "forward_args": ["x", "grid"],
+    "has_checkpoint": true,
+    "checkpoint_pattern": "1D_Burgers_Sols_Nu*.pt",
+    "checkpoint_dir": "checkpoints/fno/",
+    "checkpoint_outer_key": "model_state_dict",
+    "hardcoded_layers": 4
+  },
+
+  "unet": {
+    "class": "UNet1d",
+    "file": "unet/unet.py",
+    "source": "PDEBench official",
+
+    "physics": {
+      "suitable_for": [
+        "sharp local features and discontinuities (shocks)",
+        "multi-scale hierarchical patterns",
+        "complex spatial gradients",
+        "non-periodic boundaries"
+      ],
+      "weaknesses": [
+        "limited receptive field — may miss global long-range dependencies",
+        "resolution-dependent — changing grid size may require interpolation or retraining",
+        "heavier parameter count → slower inference"
+      ],
+      "typical_error_pattern": "Good local shock capture, but global phase drift over long rollout"
+    },
+
+    "constructor": { "args": ["in_channels", "out_channels", "init_features"] },
+    "input_shape": "(B, T_in, N)",
+    "output_shape": "(B, 1, N)",
+    "has_checkpoint": true,
+    "checkpoint_pattern": "1D_Burgers_Sols_Nu*_Unet-PF-20.pt",
+    "checkpoint_dir": "checkpoints/unet/",
+    "checkpoint_outer_key": "model_state_dict"
+  },
+
+  "deeponet": {
+    "class": "DeepONet1d",
+    "file": "deeponet/deeponet.py",
+    "source": "Custom PyTorch port (based on Lu et al., 2021)",
+
+    "physics": {
+      "suitable_for": [
+        "sensor-based or irregular-grid data",
+        "continuous function-to-function mapping",
+        "problems requiring operator-level generalization"
+      ],
+      "weaknesses": [
+        "basis function learning can be unstable",
+        "requires careful tuning of n_basis",
+        "no pre-trained checkpoint available"
+      ]
+    },
+
+    "constructor": { "args": ["modes", "width", "in_channels", "out_channels", "n_layers"], "extra": ["n_basis", "nx"] },
+    "input_shape": "(B, N, T_in)",
+    "output_shape": "(B, N)",
+    "has_checkpoint": false,
+    "training_mode": "from-scratch"
+  },
+
+  "mgno": {
+    "class": "MGNO1d",
+    "file": "mgno/mgno.py",
+    "source": "Custom — Multi-Grid Neural Operator",
+
+    "physics": {
+      "suitable_for": [
+        "multi-scale physics (coarse advection + fine dissipation)",
+        "problems with energy cascades across scales",
+        "capturing both global drift and local sharp features"
+      ],
+      "weaknesses": [
+        "complex architecture → harder to debug",
+        "more parameters → overfitting risk on small datasets",
+        "no pre-trained checkpoint available",
+        "convergence may require careful hyperparameter tuning"
+      ]
+    },
+
+    "constructor": { "args": ["modes", "width", "in_channels", "out_channels", "n_layers"], "extra": ["n_scales"] },
+    "input_shape": "(B, N, T_in)",
+    "output_shape": "(B, N)",
+    "has_checkpoint": false,
+    "training_mode": "from-scratch"
+  }
+}

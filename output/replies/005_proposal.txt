@@ -1,0 +1,53 @@
+```json
+{
+  "analysis": "当前模型 seg1=6e-06 虽极低但仍略高于 seg2=3e-06，显示在初始短时内激波形成的细微结构捕捉尚有改进空间。数据频谱显示能量集中在极少数模式（energy_bw90_modes=2），增加 modes 历史已引来退化，故不能走频谱扩展路线。应通过引入物理约束或改进训练策略来提升 seg1 精度。",
+  "hypotheses": [
+    {
+      "id": "H1",
+      "priority": "P0",
+      "title": "加入 Burgers 方程物理残差正则化",
+      "physical_basis": "Burger 方程 ∂u/∂t + u·∂u/∂x = ν·∂²u/∂x² 是精确解必须满足的局部关系。当前纯数据驱动的模型仅以 MSE 为目标，未显式利用该物理定律。可在训练时对预测输出的时间导数计算方程残差，施加惩罚项，指引模型在激波区域遵守物理，从而降低 seg1 的微小偏差。ν=0.001 时方程残差可有效检测高频下的不一致。",
+      "expected_effect": "seg1 有望降至 3-4e-06 量级，seg2 保持或进一步改善，整体指标下降至 2-3e-06 以下。seg3=0.0 维持不变。训练时间增加约 20%，仍在 12h 内。",
+      "target": {
+        "file": "train.py",
+        "layer": "训练循环中的损失计算",
+        "change": "在原有 mse_loss 上增加物理正则项，系数 λ_phy=0.01（待调优）。需对预测序列 p_pred (shape: [B, T, X]) 计算时间残差，用中心差分近似 ∂u/∂t，一阶差分近似空间导数，构建残差 r，然后增加 λ_phy * mean(r^2)。",
+        "pseudo_code": "def compute_residual(u_pred):\n    # u_pred: [B, T, X]\n    dt = 1.0 / (n_timesteps - 1)  # 假设等距\n    dx = 1.0 / n_spatial\n    u_t = (u_pred[:, 2:] - u_pred[:, :-2]) / (2*dt)  # 中心差分时间\n    u_x = (u_pred[:, 1:-1, 2:] - u_pred[:, 1:-1, :-2]) / (2*dx)  # 中心差分空间\n    u_xx = (u_pred[:, 1:-1, 2:] - 2*u_pred[:, 1:-1, 1:-1] + u_pred[:, 1:-1, :-2]) / dx**2\n    u = u_pred[:, 1:-1, 1:-1]  # 对齐时空\n    residual = u_t[:, :, 1:-1] + u * u_x - nu * u_xx  # nu=0.001\n    return torch.mean(residual**2)\n\nloss = mse_loss + 0.01 * compute_residual(p_y_pred)"
+      },
+      "risk": "低 — 梯度稳定，仅增加计算量；风险在于 λ 选择不当可能引入僵化，但通过小值起步可控制。",
+      "validation": "对比加上正则化后 seg1 的值，若降至 3-4e-06 即成功。同时监视训练曲线无 NaN。"
+    },
+    {
+      "id": "H2",
+      "priority": "P1",
+      "title": "训练时随机时序掩码（mask）增强对激波前缘的聚焦",
+      "physical_basis": "激波先在区域局部形成并传播，当前模型以完整 101 步序列训练，可能对后期平滑阶段过度学习而忽略早期的激波萌生细节。通过对输入序列随机掩盖后期部分时间步，迫使模型仅从早期状态预测后续所有步，这等效于让模型在训练中多次经历激波成形的关键阶段，提高 seg1 的鲁棒性。",
+      "expected_effect": "seg1 预计下降 20%~30%，seg2 可能轻微上升但整体更均衡，seg3 保持在 0。推理时间不变。",
+      "target": {
+        "file": "train.py 或 data_loader.py",
+        "layer": "训练数据增强步骤",
+        "change": "以概率 p=0.5 将输入初始条件 u0 保持不变，但将目标序列的前 M 个时间步置零（不计算损失），其中 M 从 [5,15] 均匀随机选取。在损失计算时只对未被掩码的步计算 MSE。",
+        "pseudo_code": "if random.random() < 0.5:\n    mask_steps = random.randint(5, 15)\n    # 目标序列 y_true shape [B, T, X]\n    target = y_true[:, mask_steps:]\n    pred = model(u0)[:, mask_steps:]  # model 仍输出全序列，但只取后半计算损失\nelse:\n    pred, target = model(u0), y_true\nloss = F.mse_loss(pred, target)"
+      },
+      "risk": "中 — 可能减弱模型对长期动力学一致性的学习，但概率控制可保留全序列训练。",
+      "validation": "观察 seg1 与整体 MSE，若 seg1 显著降低且 seg2 不恶化即有效。"
+    },
+    {
+      "id": "H3",
+      "priority": "P2",
+      "title": "切换至因子化傅里叶算子 (TFNO) 以降低无效参数并提升泛化",
+      "physical_basis": "当前 FNO 以全重量的张量整合傅里叶层，而低频主导的谱特征表明可将其分解为低秩形式。TFNO 利用了张量分解（如 Tucker），在保持相同 modes 和 width 的同时显著减少参数数量，降低过拟合风险，可能比纯粹增大 modes 更稳妥地提升 seg1（历史增加 modes 反而退化，可能是过拟合，TFNO 可缓解）。",
+      "expected_effect": "seg1 有中等概率改善至 4-5e-06，seg2 不变或略微改善。训练时间几乎不变，推理时间相当或略快。",
+      "target": {
+        "file": "model.py",
+        "layer": "FNO 模块替换为 TFNO",
+        "change": "引入 torch-harmonics 或 neurolab 的 TFNO 实现，保持输入输出 shape 不变，modes=12（恢复原有基线），width=32（不变），通过分解秩 rank=0.5（如 modes 一半）控制参数。使用预训练权重需从头训练。",
+        "pseudo_code": "from neuraloperator import TFNO\nmodel = TFNO(n_modes=(12,), hidden_channels=32, projection_channels=64, factorization='tucker', rank=0.5)"
+      },
+      "risk": "中高 — 新架构未经过当前数据验证，且需从零训练，可能不如基线；但提供了与增加 modes 不同的改进路径。",
+      "validation": "对比 TFNO 训练后 seg1 与基线，若 ≤6e-06 即视为安全替换，若更低则成功。"
+    }
+  ],
+  "fallback": "如果上述方法均未降低 seg1，可尝试极细粒度超参数调优（学习率衰减策略、batch size），或检查评估数据中是否包含极端初始条件影响 seg1，针对性进行数据增强以覆盖这些样本。"
+}
+```

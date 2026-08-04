@@ -1,0 +1,116 @@
+{
+  "mode": "generate",
+  "files": ["model.py"]
+}
+
+```python
+import torch
+import torch.nn as nn
+
+
+class SpectralConv1d(nn.Module):
+    """1D Fourier spectral convolution."""
+
+    def __init__(self, in_channels: int, out_channels: int, modes: int):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.modes = modes
+        scale = 1.0 / (in_channels * out_channels)
+        self.weights = nn.Parameter(
+            scale * torch.rand(in_channels, out_channels, modes, dtype=torch.cfloat)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B, C, N = x.shape
+        eff_modes = min(self.modes, N // 2 + 1)
+        x_ft = torch.fft.rfft(x, dim=-1)
+        out_ft = torch.zeros(B, self.out_channels, N // 2 + 1,
+                             dtype=torch.cfloat, device=x.device)
+        out_ft[:, :, :eff_modes] = torch.einsum(
+            'bix,iox->box',
+            x_ft[:, :, :eff_modes],
+            self.weights[:, :, :eff_modes]
+        )
+        return torch.fft.irfft(out_ft, n=N, dim=-1)
+
+
+class FNOBlock(nn.Module):
+    """FNO layer with spectral conv + linear skip connection."""
+
+    def __init__(self, width: int, modes: int):
+        super().__init__()
+        self.spectral = SpectralConv1d(width, width, modes)
+        self.skip = nn.Conv1d(width, width, 1)
+        self.norm = nn.GroupNorm(min(8, width), width)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return nn.functional.gelu(
+            self.norm(self.spectral(x) + self.skip(x))
+        )
+
+
+class FNO1d(nn.Module):
+    """
+    1D Fourier Neural Operator for Burgers equation.
+
+    Args:
+        modes: number of Fourier modes retained per layer.
+        width: channel width of hidden layers.
+        in_channels: input time steps (T_in).
+        out_channels: output channels (fixed to 1).
+        n_layers: number of Fourier blocks.
+    """
+
+    def __init__(self, modes: int = 16, width: int = 32, in_channels: int = 10,
+                 out_channels: int = 1, n_layers: int = 4, **kwargs):
+        super().__init__()
+        self.modes = modes
+        self.width = width
+        self.in_channels = in_channels
+        self.n_layers = n_layers
+
+        # Input projection + padding so that spatial dim doesn't shrink
+        self.fc_in = nn.Linear(in_channels + 1, width)
+        self.padding = 8  # ensure fine resolution at boundaries
+
+        self.blocks = nn.ModuleList([
+            FNOBlock(width, modes) for _ in range(n_layers)
+        ])
+
+        # Output head
+        self.head = nn.Sequential(
+            nn.Linear(width, 128),
+            nn.GELU(),
+            nn.Linear(128, 1),
+        )
+
+    def _add_grid(self, x: torch.Tensor) -> torch.Tensor:
+        B, N, _ = x.shape
+        grid = torch.linspace(0, 1, N, device=x.device).view(1, N, 1).expand(B, N, 1)
+        return torch.cat([x, grid], dim=-1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, N, T_in) -> (B, N, 1)
+        B, N, T_in = x.shape
+
+        x = self._add_grid(x)                  # (B, N, T_in+1)
+        x = self.fc_in(x)                      # (B, N, width)
+        x = x.permute(0, 2, 1)                 # (B, width, N)
+
+        # Pad to avoid boundary artefacts
+        x = nn.functional.pad(x, [self.padding, self.padding])
+
+        for block in self.blocks:
+            x = block(x)                       # (B, width, N + 2*padding)
+
+        # Remove padding
+        x = x[..., self.padding:-self.padding] # (B, width, N)
+        x = x.permute(0, 2, 1)                 # (B, N, width)
+
+        out = self.head(x)                     # (B, N, 1)
+        return out.squeeze(-1)                 # (B, N)
+
+
+Model = FNO1d
+```

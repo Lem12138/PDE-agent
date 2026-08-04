@@ -1,0 +1,17 @@
+```json
+{
+  "mode": "edit",
+  "edits": [
+    {
+      "file": "model.py",
+      "reason": "Add physics residual function for Burgers equation (Pseudo-code from hypothesis H1). This is a pure function that can be called from train.py to compute PDE residual loss. Does not alter model forward or I/O shape.",
+      "changes": [
+        {
+          "old": "class SpectralConv1d(nn.Module):",
+          "new": "def compute_residual(u_pred: torch.Tensor, dt: float, dx: float, nu: float = 0.001) -> torch.Tensor:\n    \"\"\"Compute mean squared Burgers residual.\n\n    u_pred: (B, T, X) – predicted spatiotemporal field.\n    dt: time step size.\n    dx: spatial grid spacing.\n    nu: viscosity coefficient (default 0.001).\n\n    Returns scalar mean squared residual.\n    \"\"\"\n    # Central difference in time\n    u_t = (u_pred[:, 2:, :] - u_pred[:, :-2, :]) / (2 * dt)                     # (B, T-2, X)\n    # Central difference in space (on interior time points)\n    u_x = (u_pred[:, 1:-1, 2:] - u_pred[:, 1:-1, :-2]) / (2 * dx)              # (B, T-2, X-2)\n    # Second derivative in space\n    u_xx = (\n        u_pred[:, 1:-1, 2:]\n        - 2 * u_pred[:, 1:-1, 1:-1]\n        + u_pred[:, 1:-1, :-2]\n    ) / (dx ** 2)                                                              # (B, T-2, X-2)\n    # Aligned u\n    u = u_pred[:, 1:-1, 1:-1]                                                  # (B, T-2, X-2)\n    # Burgers residual: u_t + u * u_x - nu * u_xx\n    residual = u_t[:, :, 1:-1] + u * u_x - nu * u_xx\n    return torch.mean(residual ** 2)\n\n\nclass SpectralConv1d(nn.Module):"
+        }
+      ]
+    }
+  ]
+}
+```

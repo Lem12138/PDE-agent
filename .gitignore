@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+data/
+*.pt
+*.h5
+*.hdf5
+*.ckpt
+output/runs/
+output/snapshots/
+output/state/

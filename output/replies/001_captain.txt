@@ -1,0 +1,26 @@
+```json
+{
+  "candidates": [
+    {
+      "model": "fno",
+      "priority": 1,
+      "reason": "数据低频主导（高频能量<0.1%），解场平滑，符合FNO对全局谱特征建模的优势，少量modes即可覆盖主要能量，训练效率高；虽然边界非标准，但平滑场可缓解伪影。"
+    },
+    {
+      "model": "unet",
+      "priority": 2,
+      "reason": "U-Net擅长捕捉局部特征和非周期边界，适应性强；在边界非标准且可能存在局部梯度时能提供备选假设。但数据低频平滑，可能不如FNO高效。"
+    },
+    {
+      "model": "deeponet",
+      "priority": 3,
+      "reason": "作为算子学习框架可适应非标准边界和函数空间映射，但缺乏预训练checkpoint，训练不稳定且需精细调参，优先级低于已验证适配Burgers的FNO/U-Net。"
+    },
+    {
+      "model": "mgno",
+      "priority": 4,
+      "reason": "多尺度特性理论上可处理跨尺度能量级联，但架构复杂、无checkpoint、收敛风险较高，不适合作为基线首选。"
+    }
+  ]
+}
+```
