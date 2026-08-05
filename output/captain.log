@@ -763,3 +763,843 @@
 [07:03:02] [训练] [Phase2 Epoch  26] roll=16 | Val Rel-MSE: 0.000026 | S1:0.000022 S2:0.000030 S3:0.000000
 [07:03:35] [训练] [Phase2 Epoch  27] roll=17 | Val Rel-MSE: 0.000020 | S1:0.000018 S2:0.000022 S3:0.000000
 [07:04:11] [训练] [Phase2 Epoch  28] roll=18 | Val Rel-MSE: 0.000028 | S1:0.000026 S2:0.000030 S3:0.000000
+[07:36:52] [Captain] Task 1 启动
+  train=data/diff_sorp/train.h5, val=data/diff_sorp/val.h5
+[07:36:52] [Captain] Phase 0.1: 数据探测
+[07:36:54] [探测] 数据: train.h5
+  shape=[8000, 101, 1024], freq=smooth_dominated, bc=other
+[07:36:55] [探测] 数据: val.h5
+  shape=[1000, 101, 1024], freq=smooth_dominated, bc=other
+[07:36:55] [Captain] 数据配置: h5_key=tensor, subsample=4, n_spatial=256, t_in=10, extra_files=0, conditions=[]
+[07:36:55] [Captain] Phase 0.2: Captain LLM 推理匹配模型
+[07:36:55] [Subagent] 调用 captain
+  ### 数据探测报告
+## 自动探测报告
+
+### 数据探测
+
+**train.h5**
+- 维度: [8000, 101, 1024] (N_samples × T_steps × X_space), dtype=float32
+- 统计: min=0.0002, max=0.9996, mean=0.2612, std=0.2695
+- 频谱: 高频能量占比=0.0004, 判定=smooth
+[07:37:11] [LLM推理] 候选模型: ['fno', 'mgno', 'deeponet', 'unet']
+[07:37:11] [Captain] Scout: 获取代码 — fno
+[07:37:11] [Captain] 从模板复制: fno.py → model.py
+[07:37:12] [Captain] 实例化检查: PASS
+  OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+[07:37:12] [Captain] Scout: 训练 — fno
+[07:37:12] [训练] 开始训练: scout_fno
+  Phase1=25eps + Phase2=20eps | cmd=/home/apde/miniconda3/bin/python /home/apde/pde_project/a.Lem's workspace/train.py --train_data data/diff_sorp/train.h5 --val_data data/diff_sorp/val.h5 --save_dir /home/apde/pde_project/a.Lem's workspace/output/runs/scout_fno --max_samples 200 --phase1_epochs 25 --phase2_epochs 20 --batch_size 8 --no_plateau
+[07:37:36] [训练] === Phase 1: Teacher Forcing ===
+[07:37:41] [训练] [Phase1 Epoch   1] Val Rel-MSE: 0.999360 | S1:0.994757 S2:1.004277 S3:0.000000
+[07:37:45] [训练] [Phase1 Epoch   2] Val Rel-MSE: 0.991520 | S1:0.988675 S2:0.994559 S3:0.000000
+[07:37:49] [训练] [Phase1 Epoch   3] Val Rel-MSE: 0.966239 | S1:0.956615 S2:0.976519 S3:0.000000
+[07:37:53] [训练] [Phase1 Epoch   4] Val Rel-MSE: 0.846498 | S1:0.786113 S2:0.911001 S3:0.000000
+[07:37:58] [训练] [Phase1 Epoch   5] Val Rel-MSE: 0.471920 | S1:0.191646 S2:0.771304 S3:0.000000
+[07:38:02] [训练] [Phase1 Epoch   6] Val Rel-MSE: 0.150228 | S1:0.158578 S2:0.141308 S3:0.000000
+[07:38:06] [训练] [Phase1 Epoch   7] Val Rel-MSE: 0.080164 | S1:0.096641 S2:0.062564 S3:0.000000
+[07:38:10] [训练] [Phase1 Epoch   8] Val Rel-MSE: 0.081093 | S1:0.109499 S2:0.050750 S3:0.000000
+[07:38:15] [训练] [Phase1 Epoch   9] Val Rel-MSE: 0.069393 | S1:0.097919 S2:0.038923 S3:0.000000
+[07:38:19] [训练] [Phase1 Epoch  10] Val Rel-MSE: 0.060592 | S1:0.079284 S2:0.040627 S3:0.000000
+[07:38:23] [训练] [Phase1 Epoch  11] Val Rel-MSE: 0.060599 | S1:0.067549 S2:0.053175 S3:0.000000
+[07:38:27] [训练] [Phase1 Epoch  12] Val Rel-MSE: 0.056101 | S1:0.057807 S2:0.054278 S3:0.000000
+[07:38:32] [训练] [Phase1 Epoch  13] Val Rel-MSE: 0.049813 | S1:0.059899 S2:0.039039 S3:0.000000
+[07:38:36] [训练] [Phase1 Epoch  14] Val Rel-MSE: 0.052053 | S1:0.065622 S2:0.037559 S3:0.000000
+[07:38:40] [训练] [Phase1 Epoch  15] Val Rel-MSE: 0.043977 | S1:0.055223 S2:0.031964 S3:0.000000
+[07:38:45] [训练] [Phase1 Epoch  16] Val Rel-MSE: 0.041395 | S1:0.050299 S2:0.031885 S3:0.000000
+[07:38:50] [训练] [Phase1 Epoch  17] Val Rel-MSE: 0.038710 | S1:0.044477 S2:0.032549 S3:0.000000
+[07:38:56] [训练] [Phase1 Epoch  18] Val Rel-MSE: 0.036963 | S1:0.044269 S2:0.029158 S3:0.000000
+[07:39:01] [训练] [Phase1 Epoch  19] Val Rel-MSE: 0.038741 | S1:0.045726 S2:0.031280 S3:0.000000
+[07:39:06] [训练] [Phase1 Epoch  20] Val Rel-MSE: 0.039533 | S1:0.046509 S2:0.032081 S3:0.000000
+[07:39:12] [训练] [Phase1 Epoch  21] Val Rel-MSE: 0.038162 | S1:0.044783 S2:0.031090 S3:0.000000
+[07:39:17] [训练] [Phase1 Epoch  22] Val Rel-MSE: 0.039131 | S1:0.045679 S2:0.032137 S3:0.000000
+[07:39:22] [训练] [Phase1 Epoch  23] Val Rel-MSE: 0.038563 | S1:0.045030 S2:0.031655 S3:0.000000
+[07:39:29] [训练] [Phase1 Epoch  24] Val Rel-MSE: 0.038320 | S1:0.044740 S2:0.031464 S3:0.000000
+[07:39:33] [训练] [Phase1 Epoch  25] Val Rel-MSE: 0.038332 | S1:0.044739 S2:0.031489 S3:0.000000
+[07:39:33] [训练] === Phase 2: Progressive Rollout ===
+[07:39:37] [训练] [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 0.039155 | S1:0.045581 S2:0.032292 S3:0.000000
+[07:39:42] [训练] [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 0.036757 | S1:0.041815 S2:0.031353 S3:0.000000
+[07:39:46] [训练] [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 0.032835 | S1:0.033609 S2:0.032009 S3:0.000000
+[07:39:50] [训练] [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 0.032398 | S1:0.036565 S2:0.027946 S3:0.000000
+[07:39:54] [训练] [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 0.030381 | S1:0.033219 S2:0.027348 S3:0.000000
+[07:39:58] [训练] [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 0.033231 | S1:0.037289 S2:0.028897 S3:0.000000
+[07:40:03] [训练] [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 0.030982 | S1:0.034180 S2:0.027567 S3:0.000000
+[07:40:07] [训练] [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 0.028103 | S1:0.029674 S2:0.026425 S3:0.000000
+[07:40:11] [训练] [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 0.029961 | S1:0.033926 S2:0.025725 S3:0.000000
+[07:40:15] [训练] [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 0.026117 | S1:0.028630 S2:0.023433 S3:0.000000
+[07:40:19] [训练] [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 0.026479 | S1:0.030024 S2:0.022693 S3:0.000000
+[07:40:24] [训练] [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 0.029533 | S1:0.033660 S2:0.025125 S3:0.000000
+[07:40:28] [训练] [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 0.027567 | S1:0.031536 S2:0.023327 S3:0.000000
+[07:40:32] [训练] [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 0.027223 | S1:0.031021 S2:0.023167 S3:0.000000
+[07:40:37] [训练] [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 0.027504 | S1:0.031308 S2:0.023441 S3:0.000000
+[07:40:41] [训练] [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 0.027949 | S1:0.031717 S2:0.023924 S3:0.000000
+[07:40:46] [训练] [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 0.028053 | S1:0.031765 S2:0.024087 S3:0.000000
+[07:40:51] [训练] [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 0.027924 | S1:0.031600 S2:0.023998 S3:0.000000
+[07:40:55] [训练] [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 0.027874 | S1:0.031531 S2:0.023968 S3:0.000000
+[07:41:00] [训练] [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 0.027872 | S1:0.031526 S2:0.023968 S3:0.000000
+[07:41:00] [训练] Training completed.
+[07:41:01] [训练] 训练完成 (229s)
+  output=/home/apde/pde_project/a.Lem's workspace/output/runs/scout_fno
+[07:41:01] [评估] Scout fno: overall=0.0279 seg1=0.0315 seg2=0.0240 seg3=0.0000
+[07:41:01] [Captain] Scout: 获取代码 — mgno
+[07:41:01] [Captain] 从模板复制: mgno.py → model.py
+[07:41:02] [Captain] 实例化检查: PASS
+  OK: MGNO1d input=[2, 256, 10] output=[2, 256]
+[07:41:02] [Captain] Scout: 训练 — mgno
+[07:41:02] [训练] 开始训练: scout_mgno
+  Phase1=25eps + Phase2=20eps | cmd=/home/apde/miniconda3/bin/python /home/apde/pde_project/a.Lem's workspace/train.py --train_data data/diff_sorp/train.h5 --val_data data/diff_sorp/val.h5 --save_dir /home/apde/pde_project/a.Lem's workspace/output/runs/scout_mgno --max_samples 200 --phase1_epochs 25 --phase2_epochs 20 --batch_size 8 --no_plateau
+[07:41:26] [训练] === Phase 1: Teacher Forcing ===
+[07:41:31] [训练] [Phase1 Epoch   1] Val Rel-MSE: 0.982926 | S1:0.960221 S2:1.007179 S3:0.000000
+[07:41:36] [训练] [Phase1 Epoch   2] Val Rel-MSE: 0.706771 | S1:0.591309 S2:0.830107 S3:0.000000
+[07:41:40] [训练] [Phase1 Epoch   3] Val Rel-MSE: 0.262656 | S1:0.219741 S2:0.308497 S3:0.000000
+[07:41:45] [训练] [Phase1 Epoch   4] Val Rel-MSE: 0.069333 | S1:0.055324 S2:0.084297 S3:0.000000
+[07:41:50] [训练] [Phase1 Epoch   5] Val Rel-MSE: 0.039145 | S1:0.040351 S2:0.037856 S3:0.000000
+[07:41:55] [训练] [Phase1 Epoch   6] Val Rel-MSE: 0.034403 | S1:0.041206 S2:0.027137 S3:0.000000
+[07:42:00] [训练] [Phase1 Epoch   7] Val Rel-MSE: 0.028942 | S1:0.033674 S2:0.023886 S3:0.000000
+[07:42:04] [训练] [Phase1 Epoch   8] Val Rel-MSE: 0.024799 | S1:0.024378 S2:0.025248 S3:0.000000
+[07:42:09] [训练] [Phase1 Epoch   9] Val Rel-MSE: 0.026860 | S1:0.029005 S2:0.024568 S3:0.000000
+[07:42:14] [训练] [Phase1 Epoch  10] Val Rel-MSE: 0.028767 | S1:0.029549 S2:0.027932 S3:0.000000
+[07:42:19] [训练] [Phase1 Epoch  11] Val Rel-MSE: 0.031393 | S1:0.029007 S2:0.033942 S3:0.000000
+[07:42:24] [训练] [Phase1 Epoch  12] Val Rel-MSE: 0.029439 | S1:0.025466 S2:0.033683 S3:0.000000
+[07:42:28] [训练] [Phase1 Epoch  13] Val Rel-MSE: 0.038696 | S1:0.025806 S2:0.052465 S3:0.000000
+[07:42:33] [训练] [Phase1 Epoch  14] Val Rel-MSE: 0.046999 | S1:0.030148 S2:0.065000 S3:0.000000
+[07:42:38] [训练] [Phase1 Epoch  15] Val Rel-MSE: 0.053191 | S1:0.031325 S2:0.076548 S3:0.000000
+[07:42:43] [训练] [Phase1 Epoch  16] Val Rel-MSE: 0.066266 | S1:0.036008 S2:0.098587 S3:0.000000
+[07:42:47] [训练] [Phase1 Epoch  17] Val Rel-MSE: 0.062104 | S1:0.033022 S2:0.093168 S3:0.000000
+[07:42:52] [训练] [Phase1 Epoch  18] Val Rel-MSE: 0.069274 | S1:0.036132 S2:0.104676 S3:0.000000
+[07:42:57] [训练] [Phase1 Epoch  19] Val Rel-MSE: 0.071004 | S1:0.037722 S2:0.106556 S3:0.000000
+[07:43:02] [训练] [Phase1 Epoch  20] Val Rel-MSE: 0.073654 | S1:0.036573 S2:0.113264 S3:0.000000
+[07:43:07] [训练] [Phase1 Epoch  21] Val Rel-MSE: 0.071558 | S1:0.034690 S2:0.110939 S3:0.000000
+[07:43:11] [训练] [Phase1 Epoch  22] Val Rel-MSE: 0.073398 | S1:0.034762 S2:0.114667 S3:0.000000
+[07:43:16] [训练] [Phase1 Epoch  23] Val Rel-MSE: 0.073427 | S1:0.034689 S2:0.114807 S3:0.000000
+[07:43:21] [训练] [Phase1 Epoch  24] Val Rel-MSE: 0.073765 | S1:0.034705 S2:0.115487 S3:0.000000
+[07:43:26] [训练] [Phase1 Epoch  25] Val Rel-MSE: 0.073775 | S1:0.034676 S2:0.115540 S3:0.000000
+[07:43:26] [训练] === Phase 2: Progressive Rollout ===
+[07:43:31] [训练] [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 0.025908 | S1:0.028597 S2:0.023036 S3:0.000000
+[07:43:37] [训练] [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 0.025619 | S1:0.027646 S2:0.023454 S3:0.000000
+[07:43:43] [训练] [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 0.026005 | S1:0.027278 S2:0.024645 S3:0.000000
+[07:43:49] [训练] [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 0.025750 | S1:0.027067 S2:0.024344 S3:0.000000
+[07:43:55] [训练] [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 0.026120 | S1:0.027580 S2:0.024561 S3:0.000000
+[07:44:01] [训练] [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 0.027167 | S1:0.028613 S2:0.025622 S3:0.000000
+[07:44:06] [训练] [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 0.027878 | S1:0.029653 S2:0.025983 S3:0.000000
+[07:44:12] [训练] [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 0.028398 | S1:0.030946 S2:0.025676 S3:0.000000
+[07:44:18] [训练] [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 0.028992 | S1:0.031519 S2:0.026293 S3:0.000000
+[07:44:24] [训练] [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 0.030010 | S1:0.032567 S2:0.027279 S3:0.000000
+[07:44:30] [训练] [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 0.029854 | S1:0.032289 S2:0.027253 S3:0.000000
+[07:44:36] [训练] [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 0.030630 | S1:0.032479 S2:0.028656 S3:0.000000
+[07:44:42] [训练] [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 0.030716 | S1:0.032244 S2:0.029083 S3:0.000000
+[07:44:48] [训练] [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 0.030258 | S1:0.031287 S2:0.029159 S3:0.000000
+[07:44:55] [训练] [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 0.030109 | S1:0.030854 S2:0.029313 S3:0.000000
+[07:45:01] [训练] [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 0.030274 | S1:0.031023 S2:0.029474 S3:0.000000
+[07:45:08] [训练] [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 0.030360 | S1:0.031184 S2:0.029480 S3:0.000000
+[07:45:14] [训练] [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 0.030471 | S1:0.031272 S2:0.029616 S3:0.000000
+[07:45:21] [训练] [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 0.030494 | S1:0.031228 S2:0.029710 S3:0.000000
+[07:45:28] [训练] [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 0.030503 | S1:0.031243 S2:0.029713 S3:0.000000
+[07:45:28] [训练] Training completed.
+[07:45:28] [训练] 训练完成 (266s)
+  output=/home/apde/pde_project/a.Lem's workspace/output/runs/scout_mgno
+[07:45:28] [评估] Scout mgno: overall=0.0305 seg1=0.0312 seg2=0.0297 seg3=0.0000
+[07:45:28] [Captain] Scout: 获取代码 — deeponet
+[07:45:28] [Captain] 从模板复制: deeponet.py → model.py
+[07:45:30] [Captain] 实例化检查: PASS
+  OK: DeepONet1d input=[2, 256, 10] output=[2, 256]
+[07:45:30] [Captain] Scout: 训练 — deeponet
+[07:45:30] [训练] 开始训练: scout_deeponet
+  Phase1=25eps + Phase2=20eps | cmd=/home/apde/miniconda3/bin/python /home/apde/pde_project/a.Lem's workspace/train.py --train_data data/diff_sorp/train.h5 --val_data data/diff_sorp/val.h5 --save_dir /home/apde/pde_project/a.Lem's workspace/output/runs/scout_deeponet --max_samples 200 --phase1_epochs 25 --phase2_epochs 20 --batch_size 8 --no_plateau
+[07:45:56] [训练] === Phase 1: Teacher Forcing ===
+[07:45:59] [训练] [Phase1 Epoch   1] Val Rel-MSE: 0.982819 | S1:0.994822 S2:0.969997 S3:0.000000
+[07:46:01] [训练] [Phase1 Epoch   2] Val Rel-MSE: 0.970452 | S1:0.979081 S2:0.961234 S3:0.000000
+[07:46:03] [训练] [Phase1 Epoch   3] Val Rel-MSE: 0.954132 | S1:0.962247 S2:0.945464 S3:0.000000
+[07:46:06] [训练] [Phase1 Epoch   4] Val Rel-MSE: 0.931556 | S1:0.940756 S2:0.921729 S3:0.000000
+[07:46:08] [训练] [Phase1 Epoch   5] Val Rel-MSE: 0.901304 | S1:0.910340 S2:0.891652 S3:0.000000
+[07:46:10] [训练] [Phase1 Epoch   6] Val Rel-MSE: 0.861127 | S1:0.866590 S2:0.855292 S3:0.000000
+[07:46:12] [训练] [Phase1 Epoch   7] Val Rel-MSE: 0.811320 | S1:0.815189 S2:0.807186 S3:0.000000
+[07:46:15] [训练] [Phase1 Epoch   8] Val Rel-MSE: 0.749626 | S1:0.751813 S2:0.747290 S3:0.000000
+[07:46:17] [训练] [Phase1 Epoch   9] Val Rel-MSE: 0.683482 | S1:0.675756 S2:0.691735 S3:0.000000
+[07:46:19] [训练] [Phase1 Epoch  10] Val Rel-MSE: 0.603493 | S1:0.607020 S2:0.599725 S3:0.000000
+[07:46:21] [训练] [Phase1 Epoch  11] Val Rel-MSE: 0.520250 | S1:0.534154 S2:0.505399 S3:0.000000
+[07:46:24] [训练] [Phase1 Epoch  12] Val Rel-MSE: 0.442040 | S1:0.459310 S2:0.423593 S3:0.000000
+[07:46:26] [训练] [Phase1 Epoch  13] Val Rel-MSE: 0.375608 | S1:0.389965 S2:0.360272 S3:0.000000
+[07:46:28] [训练] [Phase1 Epoch  14] Val Rel-MSE: 0.319709 | S1:0.337009 S2:0.301229 S3:0.000000
+[07:46:30] [训练] [Phase1 Epoch  15] Val Rel-MSE: 0.275534 | S1:0.310137 S2:0.238571 S3:0.000000
+[07:46:32] [训练] [Phase1 Epoch  16] Val Rel-MSE: 0.247948 | S1:0.280296 S2:0.213393 S3:0.000000
+[07:46:35] [训练] [Phase1 Epoch  17] Val Rel-MSE: 0.225497 | S1:0.270289 S2:0.177651 S3:0.000000
+[07:46:37] [训练] [Phase1 Epoch  18] Val Rel-MSE: 0.211728 | S1:0.273479 S2:0.145767 S3:0.000000
+[07:46:39] [训练] [Phase1 Epoch  19] Val Rel-MSE: 0.202277 | S1:0.262404 S2:0.138051 S3:0.000000
+[07:46:41] [训练] [Phase1 Epoch  20] Val Rel-MSE: 0.197615 | S1:0.255920 S2:0.135334 S3:0.000000
+[07:46:44] [训练] [Phase1 Epoch  21] Val Rel-MSE: 0.194413 | S1:0.255457 S2:0.129207 S3:0.000000
+[07:46:46] [训练] [Phase1 Epoch  22] Val Rel-MSE: 0.192983 | S1:0.253179 S2:0.128683 S3:0.000000
+[07:46:48] [训练] [Phase1 Epoch  23] Val Rel-MSE: 0.192012 | S1:0.253360 S2:0.126482 S3:0.000000
+[07:46:50] [训练] [Phase1 Epoch  24] Val Rel-MSE: 0.191559 | S1:0.253501 S2:0.125394 S3:0.000000
+[07:46:52] [训练] [Phase1 Epoch  25] Val Rel-MSE: 0.191465 | S1:0.253465 S2:0.125238 S3:0.000000
+[07:46:52] [训练] === Phase 2: Progressive Rollout ===
+[07:46:55] [训练] [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 0.190458 | S1:0.248489 S2:0.128469 S3:0.000000
+[07:46:57] [训练] [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 0.190384 | S1:0.244792 S2:0.132267 S3:0.000000
+[07:46:59] [训练] [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 0.188618 | S1:0.244701 S2:0.128711 S3:0.000000
+[07:47:01] [训练] [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 0.187348 | S1:0.244457 S2:0.126346 S3:0.000000
+[07:47:04] [训练] [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 0.185618 | S1:0.245236 S2:0.121936 S3:0.000000
+[07:47:06] [训练] [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 0.184271 | S1:0.245609 S2:0.118750 S3:0.000000
+[07:47:08] [训练] [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 0.182955 | S1:0.246386 S2:0.115199 S3:0.000000
+[07:47:10] [训练] [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 0.182960 | S1:0.245222 S2:0.116453 S3:0.000000
+[07:47:12] [训练] [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 0.181861 | S1:0.246102 S2:0.113240 S3:0.000000
+[07:47:15] [训练] [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 0.181214 | S1:0.246445 S2:0.111536 S3:0.000000
+[07:47:17] [训练] [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 0.180371 | S1:0.247493 S2:0.108672 S3:0.000000
+[07:47:19] [训练] [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 0.179670 | S1:0.248693 S2:0.105941 S3:0.000000
+[07:47:22] [训练] [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 0.178916 | S1:0.250968 S2:0.101952 S3:0.000000
+[07:47:24] [训练] [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 0.178637 | S1:0.251456 S2:0.100852 S3:0.000000
+[07:47:26] [训练] [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 0.178485 | S1:0.251525 S2:0.100464 S3:0.000000
+[07:47:29] [训练] [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 0.178366 | S1:0.251681 S2:0.100052 S3:0.000000
+[07:47:31] [训练] [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 0.178318 | S1:0.251573 S2:0.100068 S3:0.000000
+[07:47:33] [训练] [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 0.178221 | S1:0.252031 S2:0.099378 S3:0.000000
+[07:47:36] [训练] [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 0.178198 | S1:0.252078 S2:0.099282 S3:0.000000
+[07:47:39] [训练] [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 0.178193 | S1:0.252087 S2:0.099260 S3:0.000000
+[07:47:39] [训练] Training completed.
+[07:47:39] [训练] 训练完成 (129s)
+  output=/home/apde/pde_project/a.Lem's workspace/output/runs/scout_deeponet
+[07:47:39] [评估] Scout deeponet: overall=0.1782 seg1=0.2521 seg2=0.0993 seg3=0.0000
+[07:47:39] [Captain] Scout: 获取代码 — unet
+[07:47:39] [Captain] 从模板复制: unet.py → model.py
+[07:47:42] [Captain] 实例化检查: PASS
+  OK: UNet1d input=[2, 256, 10] output=[2, 256, 1]
+[07:47:42] [Captain] Scout: 训练 — unet
+[07:47:42] [训练] 开始训练: scout_unet
+  Phase1=25eps + Phase2=20eps | cmd=/home/apde/miniconda3/bin/python /home/apde/pde_project/a.Lem's workspace/train.py --train_data data/diff_sorp/train.h5 --val_data data/diff_sorp/val.h5 --save_dir /home/apde/pde_project/a.Lem's workspace/output/runs/scout_unet --max_samples 200 --phase1_epochs 25 --phase2_epochs 20 --batch_size 8 --no_plateau
+[07:48:09] [训练] === Phase 1: Teacher Forcing ===
+[07:48:16] [训练] [Phase1 Epoch   1] Val Rel-MSE: 1.045362 | S1:0.689770 S2:1.425200 S3:0.000000
+[07:48:24] [训练] [Phase1 Epoch   2] Val Rel-MSE: 0.926315 | S1:0.657026 S2:1.213964 S3:0.000000
+[07:48:31] [训练] [Phase1 Epoch   3] Val Rel-MSE: 1.307790 | S1:0.939159 S2:1.701554 S3:0.000000
+[07:48:39] [训练] [Phase1 Epoch   4] Val Rel-MSE: 1.479039 | S1:1.169731 S2:1.809437 S3:0.000000
+[07:48:47] [训练] [Phase1 Epoch   5] Val Rel-MSE: 1.260297 | S1:0.798492 S2:1.753588 S3:0.000000
+[07:48:54] [训练] [Phase1 Epoch   6] Val Rel-MSE: 1.249469 | S1:0.854484 S2:1.671384 S3:0.000000
+[07:49:01] [训练] [Phase1 Epoch   7] Val Rel-MSE: 1.256201 | S1:0.934594 S2:1.599735 S3:0.000000
+[07:49:09] [训练] [Phase1 Epoch   8] Val Rel-MSE: 1.099294 | S1:0.748222 S2:1.474303 S3:0.000000
+[07:49:17] [训练] [Phase1 Epoch   9] Val Rel-MSE: 1.298544 | S1:1.044931 S2:1.569449 S3:0.000000
+[07:49:25] [训练] [Phase1 Epoch  10] Val Rel-MSE: 1.092707 | S1:0.653924 S2:1.561407 S3:0.000000
+[07:49:34] [训练] [Phase1 Epoch  11] Val Rel-MSE: 1.452657 | S1:1.275538 S2:1.641853 S3:0.000000
+[07:49:42] [训练] [Phase1 Epoch  12] Val Rel-MSE: 1.579457 | S1:1.410503 S2:1.759930 S3:0.000000
+[07:49:51] [训练] [Phase1 Epoch  13] Val Rel-MSE: 1.562733 | S1:1.333304 S2:1.807805 S3:0.000000
+[07:49:59] [训练] [Phase1 Epoch  14] Val Rel-MSE: 1.241161 | S1:0.697442 S2:1.821952 S3:0.000000
+[07:50:08] [训练] [Phase1 Epoch  15] Val Rel-MSE: 1.373172 | S1:1.193735 S2:1.564844 S3:0.000000
+[07:50:16] [训练] [Phase1 Epoch  16] Val Rel-MSE: 1.419836 | S1:1.141194 S2:1.717477 S3:0.000000
+[07:50:24] [训练] [Phase1 Epoch  17] Val Rel-MSE: 1.319813 | S1:0.977150 S2:1.685840 S3:0.000000
+[07:50:33] [训练] [Phase1 Epoch  18] Val Rel-MSE: 1.283565 | S1:0.882310 S2:1.712179 S3:0.000000
+[07:50:41] [训练] [Phase1 Epoch  19] Val Rel-MSE: 1.219547 | S1:0.841527 S2:1.623340 S3:0.000000
+[07:50:50] [训练] [Phase1 Epoch  20] Val Rel-MSE: 1.496113 | S1:1.239459 S2:1.770266 S3:0.000000
+[07:50:58] [训练] [Phase1 Epoch  21] Val Rel-MSE: 1.243482 | S1:0.813268 S2:1.703029 S3:0.000000
+[07:51:06] [训练] [Phase1 Epoch  22] Val Rel-MSE: 1.372354 | S1:1.042287 S2:1.724924 S3:0.000000
+[07:51:15] [训练] [Phase1 Epoch  23] Val Rel-MSE: 1.366711 | S1:1.009701 S2:1.748063 S3:0.000000
+[07:51:23] [训练] [Phase1 Epoch  24] Val Rel-MSE: 1.428405 | S1:1.086751 S2:1.793354 S3:0.000000
+[07:51:32] [训练] [Phase1 Epoch  25] Val Rel-MSE: 1.329993 | S1:0.973456 S2:1.710839 S3:0.000000
+[07:51:32] [训练] === Phase 2: Progressive Rollout ===
+[07:51:40] [训练] [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 1.154146 | S1:0.809934 S2:1.521827 S3:0.000000
+[07:51:49] [训练] [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 0.947339 | S1:0.550653 S2:1.371072 S3:0.000000
+[07:51:57] [训练] [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 0.855348 | S1:0.542207 S2:1.189839 S3:0.000000
+[07:52:06] [训练] [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 0.991674 | S1:0.564309 S2:1.448179 S3:0.000000
+[07:52:14] [训练] [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 1.081533 | S1:0.672062 S2:1.518923 S3:0.000000
+[07:52:23] [训练] [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 0.945931 | S1:0.509468 S2:1.412153 S3:0.000000
+[07:52:31] [训练] [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 1.155366 | S1:0.743062 S2:1.595781 S3:0.000000
+[07:52:40] [训练] [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 1.172505 | S1:0.755511 S2:1.617931 S3:0.000000
+[07:52:48] [训练] [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 1.048805 | S1:0.606338 S2:1.521439 S3:0.000000
+[07:52:57] [训练] [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 1.006105 | S1:0.586495 S2:1.454326 S3:0.000000
+[07:53:05] [训练] [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 1.324221 | S1:0.999159 S2:1.671446 S3:0.000000
+[07:53:13] [训练] [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 1.163545 | S1:0.734182 S2:1.622182 S3:0.000000
+[07:53:22] [训练] [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 1.085575 | S1:0.655370 S2:1.545112 S3:0.000000
+[07:53:31] [训练] [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 0.996634 | S1:0.548398 S2:1.475431 S3:0.000000
+[07:53:40] [训练] [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 1.623570 | S1:1.456920 S2:1.801583 S3:0.000000
+[07:53:49] [训练] [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 1.269204 | S1:0.868382 S2:1.697355 S3:0.000000
+[07:53:58] [训练] [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 0.923826 | S1:0.496734 S2:1.380038 S3:0.000000
+[07:54:07] [训练] [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 1.471532 | S1:1.172146 S2:1.791331 S3:0.000000
+[07:54:16] [训练] [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 1.828800 | S1:1.759387 S2:1.902945 S3:0.000000
+[07:54:26] [训练] [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 1.692268 | S1:1.567315 S2:1.825741 S3:0.000000
+[07:54:26] [训练] Training completed.
+[07:54:26] [训练] 训练完成 (404s)
+  output=/home/apde/pde_project/a.Lem's workspace/output/runs/scout_unet
+[07:54:26] [评估] Scout unet: overall=1.6923 seg1=1.5673 seg2=1.8257 seg3=0.0000
+[07:54:26] [Captain] Scout 完成: 保留 ['fno', 'mgno']，进入全量训练
+[07:54:26] [Captain] Phase 0.3: 跑 baseline — fno
+[07:54:26] [Captain] 从模板复制: fno.py → model.py
+[07:54:26] [训练] 开始训练: phase0_fno
+  Phase1=50eps + Phase2=100eps | cmd=/home/apde/miniconda3/bin/python /home/apde/pde_project/a.Lem's workspace/train.py --train_data data/diff_sorp/train.h5 --val_data data/diff_sorp/val.h5 --save_dir /home/apde/pde_project/a.Lem's workspace/output/runs/phase0_fno
+[07:54:51] [训练] === Phase 1: Teacher Forcing ===
+[07:54:58] [训练] [Phase1 Epoch   1] Val Rel-MSE: 0.050037 | S1:0.053097 S2:0.046769 S3:0.000000
+[07:55:05] [训练] [Phase1 Epoch   2] Val Rel-MSE: 0.008222 | S1:0.006154 S2:0.010430 S3:0.000000
+[07:55:12] [训练] [Phase1 Epoch   3] Val Rel-MSE: 0.002723 | S1:0.002808 S2:0.002634 S3:0.000000
+[07:55:19] [训练] [Phase1 Epoch   4] Val Rel-MSE: 0.000963 | S1:0.001238 S2:0.000669 S3:0.000000
+[07:55:25] [训练] [Phase1 Epoch   5] Val Rel-MSE: 0.000937 | S1:0.000911 S2:0.000964 S3:0.000000
+[07:55:32] [训练] [Phase1 Epoch   6] Val Rel-MSE: 0.000514 | S1:0.000615 S2:0.000406 S3:0.000000
+[07:55:39] [训练] [Phase1 Epoch   7] Val Rel-MSE: 0.001101 | S1:0.000970 S2:0.001240 S3:0.000000
+[07:55:45] [训练] [Phase1 Epoch   8] Val Rel-MSE: 0.000541 | S1:0.000560 S2:0.000520 S3:0.000000
+[07:55:52] [训练] [Phase1 Epoch   9] Val Rel-MSE: 0.000386 | S1:0.000300 S2:0.000477 S3:0.000000
+[07:55:59] [训练] [Phase1 Epoch  10] Val Rel-MSE: 0.001228 | S1:0.000600 S2:0.001899 S3:0.000000
+[07:56:06] [训练] [Phase1 Epoch  11] Val Rel-MSE: 0.000174 | S1:0.000170 S2:0.000178 S3:0.000000
+[07:56:13] [训练] [Phase1 Epoch  12] Val Rel-MSE: 0.000577 | S1:0.000313 S2:0.000859 S3:0.000000
+[07:56:20] [训练] [Phase1 Epoch  13] Val Rel-MSE: 0.000299 | S1:0.000203 S2:0.000401 S3:0.000000
+[07:56:27] [训练] [Phase1 Epoch  14] Val Rel-MSE: 0.001378 | S1:0.000916 S2:0.001871 S3:0.000000
+[07:56:34] [训练] [Phase1 Epoch  15] Val Rel-MSE: 0.001187 | S1:0.000539 S2:0.001880 S3:0.000000
+[07:56:41] [训练] [Phase1 Epoch  16] Val Rel-MSE: 0.000229 | S1:0.000172 S2:0.000289 S3:0.000000
+[07:56:47] [训练] [Phase1 Epoch  17] Val Rel-MSE: 0.000585 | S1:0.000402 S2:0.000781 S3:0.000000
+[07:56:54] [训练] [Phase1 Epoch  18] Val Rel-MSE: 0.000446 | S1:0.000178 S2:0.000732 S3:0.000000
+[07:57:01] [训练] [Phase1 Epoch  19] Val Rel-MSE: 0.000117 | S1:0.000114 S2:0.000120 S3:0.000000
+[07:57:07] [训练] [Phase1 Epoch  20] Val Rel-MSE: 0.000107 | S1:0.000061 S2:0.000157 S3:0.000000
+[07:57:14] [训练] [Phase1 Epoch  21] Val Rel-MSE: 0.000766 | S1:0.000497 S2:0.001053 S3:0.000000
+[07:57:21] [训练] [Phase1 Epoch  22] Val Rel-MSE: 0.002079 | S1:0.000844 S2:0.003398 S3:0.000000
+[07:57:27] [训练] [Phase1 Epoch  23] Val Rel-MSE: 0.000073 | S1:0.000068 S2:0.000078 S3:0.000000
+[07:57:34] [训练] [Phase1 Epoch  24] Val Rel-MSE: 0.000247 | S1:0.000128 S2:0.000374 S3:0.000000
+[07:57:41] [训练] [Phase1 Epoch  25] Val Rel-MSE: 0.000810 | S1:0.000362 S2:0.001289 S3:0.000000
+[07:57:47] [训练] [Phase1 Epoch  26] Val Rel-MSE: 0.000112 | S1:0.000052 S2:0.000176 S3:0.000000
+[07:57:54] [训练] [Phase1 Epoch  27] Val Rel-MSE: 0.000070 | S1:0.000048 S2:0.000094 S3:0.000000
+[07:58:01] [训练] [Phase1 Epoch  28] Val Rel-MSE: 0.000072 | S1:0.000060 S2:0.000084 S3:0.000000
+[07:58:08] [训练] [Phase1 Epoch  29] Val Rel-MSE: 0.000242 | S1:0.000069 S2:0.000427 S3:0.000000
+[07:58:15] [训练] [Phase1 Epoch  30] Val Rel-MSE: 0.000053 | S1:0.000038 S2:0.000069 S3:0.000000
+[07:58:21] [训练] [Phase1 Epoch  31] Val Rel-MSE: 0.000027 | S1:0.000026 S2:0.000028 S3:0.000000
+[07:58:28] [训练] [Phase1 Epoch  32] Val Rel-MSE: 0.000028 | S1:0.000025 S2:0.000030 S3:0.000000
+[07:58:35] [训练] [Phase1 Epoch  33] Val Rel-MSE: 0.000047 | S1:0.000031 S2:0.000065 S3:0.000000
+[07:58:41] [训练] [Phase1 Epoch  34] Val Rel-MSE: 0.000035 | S1:0.000024 S2:0.000046 S3:0.000000
+[07:58:48] [训练] [Phase1 Epoch  35] Val Rel-MSE: 0.000025 | S1:0.000021 S2:0.000029 S3:0.000000
+[07:58:55] [训练] [Phase1 Epoch  36] Val Rel-MSE: 0.000090 | S1:0.000045 S2:0.000137 S3:0.000000
+[07:59:02] [训练] [Phase1 Epoch  37] Val Rel-MSE: 0.000085 | S1:0.000050 S2:0.000123 S3:0.000000
+[07:59:09] [训练] [Phase1 Epoch  38] Val Rel-MSE: 0.000020 | S1:0.000019 S2:0.000021 S3:0.000000
+[07:59:15] [训练] [Phase1 Epoch  39] Val Rel-MSE: 0.000031 | S1:0.000020 S2:0.000043 S3:0.000000
+[07:59:23] [训练] [Phase1 Epoch  40] Val Rel-MSE: 0.000030 | S1:0.000028 S2:0.000032 S3:0.000000
+[07:59:30] [训练] [Phase1 Epoch  41] Val Rel-MSE: 0.000028 | S1:0.000020 S2:0.000036 S3:0.000000
+[07:59:37] [训练] [Phase1 Epoch  42] Val Rel-MSE: 0.000032 | S1:0.000020 S2:0.000045 S3:0.000000
+[07:59:45] [训练] [Phase1 Epoch  43] Val Rel-MSE: 0.000027 | S1:0.000021 S2:0.000034 S3:0.000000
+[07:59:51] [训练] [Phase1 Epoch  44] Val Rel-MSE: 0.000024 | S1:0.000017 S2:0.000031 S3:0.000000
+[07:59:59] [训练] [Phase1 Epoch  45] Val Rel-MSE: 0.000016 | S1:0.000017 S2:0.000016 S3:0.000000
+[08:00:06] [训练] [Phase1 Epoch  46] Val Rel-MSE: 0.000020 | S1:0.000017 S2:0.000024 S3:0.000000
+[08:00:13] [训练] [Phase1 Epoch  47] Val Rel-MSE: 0.000017 | S1:0.000016 S2:0.000017 S3:0.000000
+[08:00:21] [训练] [Phase1 Epoch  48] Val Rel-MSE: 0.000016 | S1:0.000015 S2:0.000017 S3:0.000000
+[08:00:28] [训练] [Phase1 Epoch  49] Val Rel-MSE: 0.000018 | S1:0.000017 S2:0.000020 S3:0.000000
+[08:00:35] [训练] [Phase1 Epoch  50] Val Rel-MSE: 0.000015 | S1:0.000015 S2:0.000015 S3:0.000000
+[08:00:35] [训练] === Phase 2: Progressive Rollout ===
+[08:00:42] [训练] [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 0.000027 | S1:0.000026 S2:0.000029 S3:0.000000
+[08:00:50] [训练] [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 0.000146 | S1:0.000073 S2:0.000224 S3:0.000000
+[08:00:57] [训练] [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 0.000024 | S1:0.000019 S2:0.000029 S3:0.000000
+[08:01:04] [训练] [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 0.000053 | S1:0.000026 S2:0.000081 S3:0.000000
+[08:01:11] [训练] [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 0.000015 | S1:0.000015 S2:0.000015 S3:0.000000
+[08:01:19] [训练] [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 0.000027 | S1:0.000018 S2:0.000036 S3:0.000000
+[08:01:26] [训练] [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 0.000041 | S1:0.000024 S2:0.000059 S3:0.000000
+[08:01:33] [训练] [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 0.000031 | S1:0.000021 S2:0.000041 S3:0.000000
+[08:01:40] [训练] [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 0.000041 | S1:0.000022 S2:0.000062 S3:0.000000
+[08:01:47] [训练] [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 0.000021 | S1:0.000022 S2:0.000020 S3:0.000000
+[08:01:54] [训练] [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 0.000019 | S1:0.000015 S2:0.000024 S3:0.000000
+[08:02:02] [训练] [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 0.000024 | S1:0.000022 S2:0.000027 S3:0.000000
+[08:02:11] [训练] [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 0.000017 | S1:0.000014 S2:0.000020 S3:0.000000
+[08:02:22] [训练] [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 0.000022 | S1:0.000016 S2:0.000028 S3:0.000000
+[08:02:34] [训练] [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 0.000014 | S1:0.000013 S2:0.000016 S3:0.000000
+[08:02:47] [训练] [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 0.000016 | S1:0.000014 S2:0.000018 S3:0.000000
+[08:03:02] [训练] [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 0.000013 | S1:0.000013 S2:0.000014 S3:0.000000
+[08:03:18] [训练] [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 0.000014 | S1:0.000013 S2:0.000014 S3:0.000000
+[08:03:35] [训练] [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 0.000015 | S1:0.000014 S2:0.000016 S3:0.000000
+[08:03:53] [训练] [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 0.000017 | S1:0.000014 S2:0.000020 S3:0.000000
+[08:04:13] [训练] [Phase2 Epoch  21] roll=11 | Val Rel-MSE: 0.000013 | S1:0.000013 S2:0.000014 S3:0.000000
+[08:04:34] [训练] [Phase2 Epoch  22] roll=12 | Val Rel-MSE: 0.000014 | S1:0.000013 S2:0.000015 S3:0.000000
+[08:04:56] [训练] [Phase2 Epoch  23] roll=13 | Val Rel-MSE: 0.000015 | S1:0.000013 S2:0.000017 S3:0.000000
+[08:05:19] [训练] [Phase2 Epoch  24] roll=14 | Val Rel-MSE: 0.000015 | S1:0.000013 S2:0.000017 S3:0.000000
+[08:05:43] [训练] [Phase2 Epoch  25] roll=15 | Val Rel-MSE: 0.000014 | S1:0.000013 S2:0.000015 S3:0.000000
+[08:06:09] [训练] [Phase2 Epoch  26] roll=16 | Val Rel-MSE: 0.000013 | S1:0.000012 S2:0.000014 S3:0.000000
+[08:06:35] [训练] [Phase2 Epoch  27] roll=17 | Val Rel-MSE: 0.000013 | S1:0.000012 S2:0.000013 S3:0.000000
+[08:07:03] [训练] [Phase2 Epoch  28] roll=18 | Val Rel-MSE: 0.000017 | S1:0.000013 S2:0.000020 S3:0.000000
+[08:07:32] [训练] [Phase2 Epoch  29] roll=19 | Val Rel-MSE: 0.000012 | S1:0.000012 S2:0.000013 S3:0.000000
+[08:08:02] [训练] [Phase2 Epoch  30] roll=20 | Val Rel-MSE: 0.000012 | S1:0.000012 S2:0.000013 S3:0.000000
+[08:08:33] [训练] [Phase2 Epoch  31] roll=21 | Val Rel-MSE: 0.000012 | S1:0.000012 S2:0.000011 S3:0.000000
+[08:09:05] [训练] [Phase2 Epoch  32] roll=22 | Val Rel-MSE: 0.000012 | S1:0.000012 S2:0.000012 S3:0.000000
+[08:09:38] [训练] [Phase2 Epoch  33] roll=23 | Val Rel-MSE: 0.000012 | S1:0.000012 S2:0.000012 S3:0.000000
+[08:10:12] [训练] [Phase2 Epoch  34] roll=24 | Val Rel-MSE: 0.000013 | S1:0.000013 S2:0.000014 S3:0.000000
+[08:10:47] [训练] [Phase2 Epoch  35] roll=25 | Val Rel-MSE: 0.000012 | S1:0.000012 S2:0.000012 S3:0.000000
+[08:11:24] [训练] [Phase2 Epoch  36] roll=26 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000011 S3:0.000000
+[08:12:01] [训练] [Phase2 Epoch  37] roll=27 | Val Rel-MSE: 0.000012 | S1:0.000012 S2:0.000012 S3:0.000000
+[08:12:40] [训练] [Phase2 Epoch  38] roll=28 | Val Rel-MSE: 0.000012 | S1:0.000011 S2:0.000012 S3:0.000000
+[08:13:20] [训练] [Phase2 Epoch  39] roll=29 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000011 S3:0.000000
+[08:14:02] [训练] [Phase2 Epoch  40] roll=30 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000011 S3:0.000000
+[08:14:44] [训练] [Phase2 Epoch  41] roll=31 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000011 S3:0.000000
+[08:15:27] [训练] [Phase2 Epoch  42] roll=32 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:16:11] [训练] [Phase2 Epoch  43] roll=33 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:16:56] [训练] [Phase2 Epoch  44] roll=34 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000011 S3:0.000000
+[08:17:42] [训练] [Phase2 Epoch  45] roll=35 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000012 S3:0.000000
+[08:18:30] [训练] [Phase2 Epoch  46] roll=36 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:19:18] [训练] [Phase2 Epoch  47] roll=37 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:20:08] [训练] [Phase2 Epoch  48] roll=38 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:20:59] [训练] [Phase2 Epoch  49] roll=39 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:21:51] [训练] [Phase2 Epoch  50] roll=40 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:22:44] [训练] [Phase2 Epoch  51] roll=41 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:23:38] [训练] [Phase2 Epoch  52] roll=42 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:24:33] [训练] [Phase2 Epoch  53] roll=43 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000009 S3:0.000000
+[08:25:29] [训练] [Phase2 Epoch  54] roll=44 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:26:28] [训练] [Phase2 Epoch  55] roll=46 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000009 S3:0.000000
+[08:27:27] [训练] [Phase2 Epoch  56] roll=47 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000009 S3:0.000000
+[08:28:28] [训练] [Phase2 Epoch  57] roll=48 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000010 S3:0.000000
+[08:29:30] [训练] [Phase2 Epoch  58] roll=49 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000009 S3:0.000000
+[08:30:33] [训练] [Phase2 Epoch  59] roll=50 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000009 S3:0.000000
+[08:31:39] [训练] [Phase2 Epoch  60] roll=52 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000009 S3:0.000000
+[08:32:45] [训练] [Phase2 Epoch  61] roll=53 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000009 S3:0.000000
+[08:33:53] [训练] [Phase2 Epoch  62] roll=54 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:35:01] [训练] [Phase2 Epoch  63] roll=55 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000010 S3:0.000000
+[08:36:11] [训练] [Phase2 Epoch  64] roll=56 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000009 S3:0.000000
+[08:37:21] [训练] [Phase2 Epoch  65] roll=58 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:38:34] [训练] [Phase2 Epoch  66] roll=59 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000009 S3:0.000000
+[08:39:47] [训练] [Phase2 Epoch  67] roll=60 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:41:01] [训练] [Phase2 Epoch  68] roll=61 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:42:17] [训练] [Phase2 Epoch  69] roll=62 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:43:35] [训练] [Phase2 Epoch  70] roll=64 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:44:54] [训练] [Phase2 Epoch  71] roll=65 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:46:15] [训练] [Phase2 Epoch  72] roll=66 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:47:36] [训练] [Phase2 Epoch  73] roll=67 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:48:58] [训练] [Phase2 Epoch  74] roll=68 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[08:50:23] [训练] [Phase2 Epoch  75] roll=70 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[08:51:48] [训练] [Phase2 Epoch  76] roll=71 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[08:53:15] [训练] [Phase2 Epoch  77] roll=72 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[08:54:43] [训练] [Phase2 Epoch  78] roll=73 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[08:56:12] [训练] [Phase2 Epoch  79] roll=74 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[08:57:43] [训练] [Phase2 Epoch  80] roll=76 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[08:59:15] [训练] [Phase2 Epoch  81] roll=77 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:00:48] [训练] [Phase2 Epoch  82] roll=78 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:02:25] [训练] [Phase2 Epoch  83] roll=79 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:04:21] [训练] [Phase2 Epoch  84] roll=80 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:06:20] [训练] [Phase2 Epoch  85] roll=82 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:08:20] [训练] [Phase2 Epoch  86] roll=83 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:10:22] [训练] [Phase2 Epoch  87] roll=84 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:12:23] [训练] [Phase2 Epoch  88] roll=85 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:14:27] [训练] [Phase2 Epoch  89] roll=86 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:16:34] [训练] [Phase2 Epoch  90] roll=88 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:18:42] [训练] [Phase2 Epoch  91] roll=89 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:20:52] [训练] [Phase2 Epoch  92] roll=90 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:20:58] [训练] [Phase2 Epoch  93] roll=91 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:21:04] [训练] [Phase2 Epoch  94] roll=92 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:21:10] [训练] [Phase2 Epoch  95] roll=94 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:21:16] [训练] [Phase2 Epoch  96] roll=95 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:21:22] [训练] [Phase2 Epoch  97] roll=96 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:21:28] [训练] [Phase2 Epoch  98] roll=97 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:21:34] [训练] [Phase2 Epoch  99] roll=98 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:21:39] [训练] [Phase2 Epoch 100] roll=100 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000008 S3:0.000000
+[09:21:39] [训练] Training completed.
+[09:21:40] [训练] 训练完成 (5233s)
+  output=/home/apde/pde_project/a.Lem's workspace/output/runs/phase0_fno
+[09:21:40] [Captain] Phase 0.3: 跑 baseline — mgno
+[09:21:40] [Captain] 从模板复制: mgno.py → model.py
+[09:21:40] [训练] 开始训练: phase0_mgno
+  Phase1=50eps + Phase2=100eps | cmd=/home/apde/miniconda3/bin/python /home/apde/pde_project/a.Lem's workspace/train.py --train_data data/diff_sorp/train.h5 --val_data data/diff_sorp/val.h5 --save_dir /home/apde/pde_project/a.Lem's workspace/output/runs/phase0_mgno
+[09:22:08] [训练] === Phase 1: Teacher Forcing ===
+[09:22:17] [训练] [Phase1 Epoch   1] Val Rel-MSE: 0.012908 | S1:0.014362 S2:0.011356 S3:0.000000
+[09:22:26] [训练] [Phase1 Epoch   2] Val Rel-MSE: 0.026774 | S1:0.008965 S2:0.045797 S3:0.000000
+[09:22:34] [训练] [Phase1 Epoch   3] Val Rel-MSE: 0.007997 | S1:0.004013 S2:0.012254 S3:0.000000
+[09:22:43] [训练] [Phase1 Epoch   4] Val Rel-MSE: 0.003090 | S1:0.002689 S2:0.003519 S3:0.000000
+[09:22:52] [训练] [Phase1 Epoch   5] Val Rel-MSE: 0.001915 | S1:0.001900 S2:0.001931 S3:0.000000
+[09:23:01] [训练] [Phase1 Epoch   6] Val Rel-MSE: 0.003614 | S1:0.002877 S2:0.004401 S3:0.000000
+[09:23:10] [训练] [Phase1 Epoch   7] Val Rel-MSE: 0.001830 | S1:0.001597 S2:0.002079 S3:0.000000
+[09:23:18] [训练] [Phase1 Epoch   8] Val Rel-MSE: 0.000958 | S1:0.000867 S2:0.001056 S3:0.000000
+[09:23:26] [训练] [Phase1 Epoch   9] Val Rel-MSE: 0.000683 | S1:0.000576 S2:0.000796 S3:0.000000
+[09:23:35] [训练] [Phase1 Epoch  10] Val Rel-MSE: 0.000485 | S1:0.000357 S2:0.000621 S3:0.000000
+[09:23:44] [训练] [Phase1 Epoch  11] Val Rel-MSE: 0.000858 | S1:0.000419 S2:0.001326 S3:0.000000
+[09:23:52] [训练] [Phase1 Epoch  12] Val Rel-MSE: 0.000386 | S1:0.000268 S2:0.000513 S3:0.000000
+[09:24:01] [训练] [Phase1 Epoch  13] Val Rel-MSE: 0.000391 | S1:0.000286 S2:0.000502 S3:0.000000
+[09:24:10] [训练] [Phase1 Epoch  14] Val Rel-MSE: 0.000361 | S1:0.000213 S2:0.000518 S3:0.000000
+[09:24:18] [训练] [Phase1 Epoch  15] Val Rel-MSE: 0.000170 | S1:0.000138 S2:0.000204 S3:0.000000
+[09:24:27] [训练] [Phase1 Epoch  16] Val Rel-MSE: 0.000291 | S1:0.000155 S2:0.000435 S3:0.000000
+[09:24:36] [训练] [Phase1 Epoch  17] Val Rel-MSE: 0.000710 | S1:0.000397 S2:0.001045 S3:0.000000
+[09:24:45] [训练] [Phase1 Epoch  18] Val Rel-MSE: 0.000359 | S1:0.000200 S2:0.000528 S3:0.000000
+[09:24:53] [训练] [Phase1 Epoch  19] Val Rel-MSE: 0.000218 | S1:0.000175 S2:0.000265 S3:0.000000
+[09:25:01] [训练] [Phase1 Epoch  20] Val Rel-MSE: 0.000365 | S1:0.000182 S2:0.000561 S3:0.000000
+[09:25:10] [训练] [Phase1 Epoch  21] Val Rel-MSE: 0.000274 | S1:0.000212 S2:0.000341 S3:0.000000
+[09:25:19] [训练] [Phase1 Epoch  22] Val Rel-MSE: 0.000412 | S1:0.000216 S2:0.000621 S3:0.000000
+[09:25:28] [训练] [Phase1 Epoch  23] Val Rel-MSE: 0.000409 | S1:0.000225 S2:0.000606 S3:0.000000
+[09:25:37] [训练] [Phase1 Epoch  24] Val Rel-MSE: 0.000470 | S1:0.000279 S2:0.000675 S3:0.000000
+[09:25:46] [训练] [Phase1 Epoch  25] Val Rel-MSE: 0.000290 | S1:0.000160 S2:0.000429 S3:0.000000
+[09:25:54] [训练] [Phase1 Epoch  26] Val Rel-MSE: 0.000053 | S1:0.000045 S2:0.000061 S3:0.000000
+[09:26:03] [训练] [Phase1 Epoch  27] Val Rel-MSE: 0.000081 | S1:0.000069 S2:0.000094 S3:0.000000
+[09:26:12] [训练] [Phase1 Epoch  28] Val Rel-MSE: 0.000052 | S1:0.000041 S2:0.000063 S3:0.000000
+[09:26:21] [训练] [Phase1 Epoch  29] Val Rel-MSE: 0.000162 | S1:0.000130 S2:0.000196 S3:0.000000
+[09:26:28] [训练] [Phase1 Epoch  30] Val Rel-MSE: 0.000069 | S1:0.000065 S2:0.000074 S3:0.000000
+[09:26:37] [训练] [Phase1 Epoch  31] Val Rel-MSE: 0.000092 | S1:0.000058 S2:0.000128 S3:0.000000
+[09:26:46] [训练] [Phase1 Epoch  32] Val Rel-MSE: 0.000031 | S1:0.000029 S2:0.000032 S3:0.000000
+[09:26:55] [训练] [Phase1 Epoch  33] Val Rel-MSE: 0.000186 | S1:0.000104 S2:0.000274 S3:0.000000
+[09:27:04] [训练] [Phase1 Epoch  34] Val Rel-MSE: 0.000089 | S1:0.000047 S2:0.000134 S3:0.000000
+[09:27:12] [训练] [Phase1 Epoch  35] Val Rel-MSE: 0.000105 | S1:0.000059 S2:0.000154 S3:0.000000
+[09:27:21] [训练] [Phase1 Epoch  36] Val Rel-MSE: 0.000084 | S1:0.000068 S2:0.000102 S3:0.000000
+[09:27:30] [训练] [Phase1 Epoch  37] Val Rel-MSE: 0.000098 | S1:0.000053 S2:0.000146 S3:0.000000
+[09:27:39] [训练] [Phase1 Epoch  38] Val Rel-MSE: 0.000053 | S1:0.000042 S2:0.000065 S3:0.000000
+[09:27:48] [训练] [Phase1 Epoch  39] Val Rel-MSE: 0.000034 | S1:0.000034 S2:0.000035 S3:0.000000
+[09:27:56] [训练] [Phase1 Epoch  40] Val Rel-MSE: 0.000031 | S1:0.000031 S2:0.000031 S3:0.000000
+[09:28:04] [训练] [Phase1 Epoch  41] Val Rel-MSE: 0.000040 | S1:0.000028 S2:0.000053 S3:0.000000
+[09:28:13] [训练] [Phase1 Epoch  42] Val Rel-MSE: 0.000035 | S1:0.000024 S2:0.000046 S3:0.000000
+[09:28:22] [训练] [Phase1 Epoch  43] Val Rel-MSE: 0.000038 | S1:0.000030 S2:0.000046 S3:0.000000
+[09:28:30] [训练] [Phase1 Epoch  44] Val Rel-MSE: 0.000027 | S1:0.000026 S2:0.000029 S3:0.000000
+[09:28:39] [训练] [Phase1 Epoch  45] Val Rel-MSE: 0.000026 | S1:0.000025 S2:0.000028 S3:0.000000
+[09:28:48] [训练] [Phase1 Epoch  46] Val Rel-MSE: 0.000027 | S1:0.000029 S2:0.000025 S3:0.000000
+[09:28:57] [训练] [Phase1 Epoch  47] Val Rel-MSE: 0.000036 | S1:0.000026 S2:0.000047 S3:0.000000
+[09:29:06] [训练] [Phase1 Epoch  48] Val Rel-MSE: 0.000032 | S1:0.000024 S2:0.000041 S3:0.000000
+[09:29:14] [训练] [Phase1 Epoch  49] Val Rel-MSE: 0.000026 | S1:0.000027 S2:0.000024 S3:0.000000
+[09:29:23] [训练] [Phase1 Epoch  50] Val Rel-MSE: 0.000026 | S1:0.000027 S2:0.000024 S3:0.000000
+[09:29:23] [训练] === Phase 2: Progressive Rollout ===
+[09:29:31] [训练] [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 0.000036 | S1:0.000029 S2:0.000043 S3:0.000000
+[09:29:40] [训练] [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 0.000033 | S1:0.000036 S2:0.000030 S3:0.000000
+[09:29:49] [训练] [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 0.000035 | S1:0.000038 S2:0.000032 S3:0.000000
+[09:29:58] [训练] [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 0.000058 | S1:0.000045 S2:0.000073 S3:0.000000
+[09:30:07] [训练] [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 0.000069 | S1:0.000058 S2:0.000081 S3:0.000000
+[09:30:15] [训练] [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 0.000054 | S1:0.000035 S2:0.000074 S3:0.000000
+[09:30:24] [训练] [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 0.000058 | S1:0.000060 S2:0.000056 S3:0.000000
+[09:30:33] [训练] [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 0.000045 | S1:0.000030 S2:0.000060 S3:0.000000
+[09:30:42] [训练] [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 0.000044 | S1:0.000039 S2:0.000050 S3:0.000000
+[09:30:51] [训练] [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 0.000032 | S1:0.000029 S2:0.000034 S3:0.000000
+[09:30:59] [训练] [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 0.000028 | S1:0.000029 S2:0.000027 S3:0.000000
+[09:31:09] [训练] [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 0.000125 | S1:0.000105 S2:0.000145 S3:0.000000
+[09:31:21] [训练] [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 0.000069 | S1:0.000037 S2:0.000103 S3:0.000000
+[09:31:34] [训练] [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 0.000076 | S1:0.000059 S2:0.000094 S3:0.000000
+[09:31:49] [训练] [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 0.000093 | S1:0.000080 S2:0.000108 S3:0.000000
+[09:32:06] [训练] [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 0.000064 | S1:0.000029 S2:0.000101 S3:0.000000
+[09:32:24] [训练] [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 0.000103 | S1:0.000050 S2:0.000159 S3:0.000000
+[09:32:43] [训练] [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 0.000036 | S1:0.000026 S2:0.000047 S3:0.000000
+[09:33:05] [训练] [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 0.000045 | S1:0.000041 S2:0.000050 S3:0.000000
+[09:33:28] [训练] [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 0.000031 | S1:0.000032 S2:0.000029 S3:0.000000
+[09:33:52] [训练] [Phase2 Epoch  21] roll=11 | Val Rel-MSE: 0.000026 | S1:0.000022 S2:0.000031 S3:0.000000
+[09:34:18] [训练] [Phase2 Epoch  22] roll=12 | Val Rel-MSE: 0.000040 | S1:0.000024 S2:0.000056 S3:0.000000
+[09:34:44] [训练] [Phase2 Epoch  23] roll=13 | Val Rel-MSE: 0.000025 | S1:0.000020 S2:0.000030 S3:0.000000
+[09:35:14] [训练] [Phase2 Epoch  24] roll=14 | Val Rel-MSE: 0.000021 | S1:0.000021 S2:0.000021 S3:0.000000
+[09:35:44] [训练] [Phase2 Epoch  25] roll=15 | Val Rel-MSE: 0.000043 | S1:0.000029 S2:0.000058 S3:0.000000
+[09:36:17] [训练] [Phase2 Epoch  26] roll=16 | Val Rel-MSE: 0.000028 | S1:0.000021 S2:0.000035 S3:0.000000
+[09:36:50] [训练] [Phase2 Epoch  27] roll=17 | Val Rel-MSE: 0.000039 | S1:0.000031 S2:0.000049 S3:0.000000
+[09:37:25] [训练] [Phase2 Epoch  28] roll=18 | Val Rel-MSE: 0.000021 | S1:0.000020 S2:0.000021 S3:0.000000
+[09:38:01] [训练] [Phase2 Epoch  29] roll=19 | Val Rel-MSE: 0.000031 | S1:0.000022 S2:0.000040 S3:0.000000
+[09:38:40] [训练] [Phase2 Epoch  30] roll=20 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000018 S3:0.000000
+[09:39:19] [训练] [Phase2 Epoch  31] roll=21 | Val Rel-MSE: 0.000022 | S1:0.000021 S2:0.000023 S3:0.000000
+[09:40:02] [训练] [Phase2 Epoch  32] roll=22 | Val Rel-MSE: 0.000031 | S1:0.000027 S2:0.000035 S3:0.000000
+[09:40:45] [训练] [Phase2 Epoch  33] roll=23 | Val Rel-MSE: 0.000022 | S1:0.000020 S2:0.000024 S3:0.000000
+[09:41:25] [训练] [Phase2 Epoch  34] roll=24 | Val Rel-MSE: 0.000023 | S1:0.000021 S2:0.000026 S3:0.000000
+[09:42:03] [训练] [Phase2 Epoch  35] roll=25 | Val Rel-MSE: 0.000022 | S1:0.000020 S2:0.000025 S3:0.000000
+[09:42:43] [训练] [Phase2 Epoch  36] roll=26 | Val Rel-MSE: 0.000022 | S1:0.000022 S2:0.000022 S3:0.000000
+[09:43:24] [训练] [Phase2 Epoch  37] roll=27 | Val Rel-MSE: 0.000020 | S1:0.000020 S2:0.000021 S3:0.000000
+[09:44:06] [训练] [Phase2 Epoch  38] roll=28 | Val Rel-MSE: 0.000029 | S1:0.000023 S2:0.000036 S3:0.000000
+[09:44:49] [训练] [Phase2 Epoch  39] roll=29 | Val Rel-MSE: 0.000024 | S1:0.000023 S2:0.000025 S3:0.000000
+[09:45:34] [训练] [Phase2 Epoch  40] roll=30 | Val Rel-MSE: 0.000022 | S1:0.000022 S2:0.000022 S3:0.000000
+[09:46:19] [训练] [Phase2 Epoch  41] roll=31 | Val Rel-MSE: 0.000020 | S1:0.000020 S2:0.000019 S3:0.000000
+[09:47:06] [训练] [Phase2 Epoch  42] roll=32 | Val Rel-MSE: 0.000019 | S1:0.000020 S2:0.000019 S3:0.000000
+[09:47:54] [训练] [Phase2 Epoch  43] roll=33 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000019 S3:0.000000
+[09:48:43] [训练] [Phase2 Epoch  44] roll=34 | Val Rel-MSE: 0.000020 | S1:0.000020 S2:0.000019 S3:0.000000
+[09:49:33] [训练] [Phase2 Epoch  45] roll=35 | Val Rel-MSE: 0.000022 | S1:0.000021 S2:0.000023 S3:0.000000
+[09:50:25] [训练] [Phase2 Epoch  46] roll=36 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000018 S3:0.000000
+[09:51:17] [训练] [Phase2 Epoch  47] roll=37 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000019 S3:0.000000
+[09:52:11] [训练] [Phase2 Epoch  48] roll=38 | Val Rel-MSE: 0.000019 | S1:0.000020 S2:0.000018 S3:0.000000
+[09:53:06] [训练] [Phase2 Epoch  49] roll=39 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000020 S3:0.000000
+[09:54:02] [训练] [Phase2 Epoch  50] roll=40 | Val Rel-MSE: 0.000021 | S1:0.000022 S2:0.000021 S3:0.000000
+[09:54:59] [训练] [Phase2 Epoch  51] roll=41 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000018 S3:0.000000
+[09:55:58] [训练] [Phase2 Epoch  52] roll=42 | Val Rel-MSE: 0.000021 | S1:0.000022 S2:0.000020 S3:0.000000
+[09:56:58] [训练] [Phase2 Epoch  53] roll=43 | Val Rel-MSE: 0.000021 | S1:0.000022 S2:0.000020 S3:0.000000
+[09:58:11] [训练] [Phase2 Epoch  54] roll=44 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000018 S3:0.000000
+[09:59:29] [训练] [Phase2 Epoch  55] roll=46 | Val Rel-MSE: 0.000019 | S1:0.000021 S2:0.000018 S3:0.000000
+[10:00:39] [训练] [Phase2 Epoch  56] roll=47 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000020 S3:0.000000
+[10:01:50] [训练] [Phase2 Epoch  57] roll=48 | Val Rel-MSE: 0.000019 | S1:0.000021 S2:0.000018 S3:0.000000
+[10:03:02] [训练] [Phase2 Epoch  58] roll=49 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000018 S3:0.000000
+[10:04:15] [训练] [Phase2 Epoch  59] roll=50 | Val Rel-MSE: 0.000021 | S1:0.000022 S2:0.000020 S3:0.000000
+[10:05:30] [训练] [Phase2 Epoch  60] roll=52 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000019 S3:0.000000
+[10:06:48] [训练] [Phase2 Epoch  61] roll=53 | Val Rel-MSE: 0.000021 | S1:0.000022 S2:0.000020 S3:0.000000
+[10:08:07] [训练] [Phase2 Epoch  62] roll=54 | Val Rel-MSE: 0.000021 | S1:0.000022 S2:0.000019 S3:0.000000
+[10:09:27] [训练] [Phase2 Epoch  63] roll=55 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000018 S3:0.000000
+[10:10:48] [训练] [Phase2 Epoch  64] roll=56 | Val Rel-MSE: 0.000021 | S1:0.000022 S2:0.000019 S3:0.000000
+[10:12:12] [训练] [Phase2 Epoch  65] roll=58 | Val Rel-MSE: 0.000019 | S1:0.000021 S2:0.000018 S3:0.000000
+[10:13:36] [训练] [Phase2 Epoch  66] roll=59 | Val Rel-MSE: 0.000021 | S1:0.000022 S2:0.000019 S3:0.000000
+[10:15:02] [训练] [Phase2 Epoch  67] roll=60 | Val Rel-MSE: 0.000019 | S1:0.000021 S2:0.000018 S3:0.000000
+[10:16:28] [训练] [Phase2 Epoch  68] roll=61 | Val Rel-MSE: 0.000019 | S1:0.000021 S2:0.000018 S3:0.000000
+[10:17:56] [训练] [Phase2 Epoch  69] roll=62 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000018 S3:0.000000
+[10:19:27] [训练] [Phase2 Epoch  70] roll=64 | Val Rel-MSE: 0.000020 | S1:0.000021 S2:0.000018 S3:0.000000
+[10:19:27] [训练] Training completed.
+[10:19:28] [训练] 训练完成 (3468s)
+  output=/home/apde/pde_project/a.Lem's workspace/output/runs/phase0_mgno
+[10:19:28] [Captain] Phase 0.4: 汇总 baseline 排行
+[10:19:28] [Captain] 保存快照: phase0_fno
+  ckpt=/home/apde/pde_project/a.Lem's workspace/output/runs/phase0_fno/best_phase2.pt
+[10:19:28] [Captain] 🏆 Baseline 最优: fno, seg1=9e-06, seg2=8e-06, seg3=0.0
+[10:19:28] [Captain] Round 1: 调度 Proposal
+[10:19:28] [Subagent] 调用 proposal
+  当前最优模型: fno, 指标: {"overall": 8e-06, "seg1": 9e-06, "seg2": 8e-06, "seg3": 0.0}。瓶颈: 分析 seg1/seg2/seg3 哪个是短板，提出 2-3 个改进假说。
+[10:21:08] [LLM推理] 选中假说: [P0] 多步 rollout 损失训练增强自回归稳定性
+[10:21:08] [Captain] 保存快照: round1_pre
+  ckpt=/home/apde/pde_project/a.Lem's workspace/output/runs/phase0_fno/best_phase2.pt
+[10:21:08] [Subagent] 调用 dev
+  假说: 多步 rollout 损失训练增强自回归稳定性
+修改目标: {"file": "train.py", "layer": "训练循环中的损失计算和前向过程", "change": "修改 Phase2 训练：原先只用第一步的预测计算 MSE，改为从初始条件出发，用模型自回归 rollout k 步（k=2 或 3），计算每一步与真值的平均 MSE 作为损失。梯度通过整个 rollout 传播
+[10:21:29] [Captain] 实例化检查: PASS
+  OK: MGNO1d input=[2, 256, 10] output=[2, 256]
+[10:21:29] [训练] 开始训练: round1
+  Phase1=50eps + Phase2=100eps | cmd=/home/apde/miniconda3/bin/python /home/apde/pde_project/a.Lem's workspace/train.py --train_data data/diff_sorp/train.h5 --val_data data/diff_sorp/val.h5 --save_dir /home/apde/pde_project/a.Lem's workspace/output/runs/round1
+[10:21:53] [训练] === Phase 1: Teacher Forcing ===
+[10:22:02] [训练] [Phase1 Epoch   1] Val Rel-MSE: 0.015647 | S1:0.017992 S2:0.013143 S3:0.000000
+[10:22:10] [训练] [Phase1 Epoch   2] Val Rel-MSE: 0.221022 | S1:0.062245 S2:0.390625 S3:0.000000
+[10:22:18] [训练] [Phase1 Epoch   3] Val Rel-MSE: 0.202055 | S1:0.052833 S2:0.361452 S3:0.000000
+[10:22:26] [训练] [Phase1 Epoch   4] Val Rel-MSE: 0.066230 | S1:0.014270 S2:0.121733 S3:0.000000
+[10:22:34] [训练] [Phase1 Epoch   5] Val Rel-MSE: 0.004923 | S1:0.003900 S2:0.006017 S3:0.000000
+[10:22:41] [训练] [Phase1 Epoch   6] Val Rel-MSE: 0.009544 | S1:0.004726 S2:0.014691 S3:0.000000
+[10:22:49] [训练] [Phase1 Epoch   7] Val Rel-MSE: 0.002618 | S1:0.002488 S2:0.002757 S3:0.000000
+[10:22:57] [训练] [Phase1 Epoch   8] Val Rel-MSE: 0.002147 | S1:0.001577 S2:0.002754 S3:0.000000
+[10:23:05] [训练] [Phase1 Epoch   9] Val Rel-MSE: 0.001078 | S1:0.000965 S2:0.001199 S3:0.000000
+[10:23:13] [训练] [Phase1 Epoch  10] Val Rel-MSE: 0.000776 | S1:0.000799 S2:0.000751 S3:0.000000
+[10:23:21] [训练] [Phase1 Epoch  11] Val Rel-MSE: 0.004763 | S1:0.002915 S2:0.006738 S3:0.000000
+[10:23:29] [训练] [Phase1 Epoch  12] Val Rel-MSE: 0.001360 | S1:0.000746 S2:0.002017 S3:0.000000
+[10:23:37] [训练] [Phase1 Epoch  13] Val Rel-MSE: 0.000546 | S1:0.000434 S2:0.000665 S3:0.000000
+[10:23:45] [训练] [Phase1 Epoch  14] Val Rel-MSE: 0.000598 | S1:0.000534 S2:0.000667 S3:0.000000
+[10:23:53] [训练] [Phase1 Epoch  15] Val Rel-MSE: 0.000788 | S1:0.000688 S2:0.000894 S3:0.000000
+[10:24:01] [训练] [Phase1 Epoch  16] Val Rel-MSE: 0.000230 | S1:0.000151 S2:0.000316 S3:0.000000
+[10:24:09] [训练] [Phase1 Epoch  17] Val Rel-MSE: 0.000570 | S1:0.000328 S2:0.000828 S3:0.000000
+[10:24:17] [训练] [Phase1 Epoch  18] Val Rel-MSE: 0.000671 | S1:0.000312 S2:0.001055 S3:0.000000
+[10:24:25] [训练] [Phase1 Epoch  19] Val Rel-MSE: 0.000378 | S1:0.000315 S2:0.000445 S3:0.000000
+[10:24:33] [训练] [Phase1 Epoch  20] Val Rel-MSE: 0.000642 | S1:0.000274 S2:0.001036 S3:0.000000
+[10:24:41] [训练] [Phase1 Epoch  21] Val Rel-MSE: 0.000518 | S1:0.000376 S2:0.000670 S3:0.000000
+[10:24:49] [训练] [Phase1 Epoch  22] Val Rel-MSE: 0.000238 | S1:0.000116 S2:0.000367 S3:0.000000
+[10:24:57] [训练] [Phase1 Epoch  23] Val Rel-MSE: 0.000278 | S1:0.000186 S2:0.000376 S3:0.000000
+[10:25:05] [训练] [Phase1 Epoch  24] Val Rel-MSE: 0.000261 | S1:0.000171 S2:0.000356 S3:0.000000
+[10:25:13] [训练] [Phase1 Epoch  25] Val Rel-MSE: 0.000711 | S1:0.000370 S2:0.001074 S3:0.000000
+[10:25:21] [训练] [Phase1 Epoch  26] Val Rel-MSE: 0.000301 | S1:0.000238 S2:0.000368 S3:0.000000
+[10:25:28] [训练] [Phase1 Epoch  27] Val Rel-MSE: 0.000305 | S1:0.000107 S2:0.000515 S3:0.000000
+[10:25:36] [训练] [Phase1 Epoch  28] Val Rel-MSE: 0.000130 | S1:0.000105 S2:0.000156 S3:0.000000
+[10:25:44] [训练] [Phase1 Epoch  29] Val Rel-MSE: 0.000176 | S1:0.000142 S2:0.000213 S3:0.000000
+[10:25:52] [训练] [Phase1 Epoch  30] Val Rel-MSE: 0.000149 | S1:0.000051 S2:0.000254 S3:0.000000
+[10:26:00] [训练] [Phase1 Epoch  31] Val Rel-MSE: 0.000065 | S1:0.000035 S2:0.000096 S3:0.000000
+[10:26:08] [训练] [Phase1 Epoch  32] Val Rel-MSE: 0.000185 | S1:0.000125 S2:0.000249 S3:0.000000
+[10:26:16] [训练] [Phase1 Epoch  33] Val Rel-MSE: 0.000088 | S1:0.000066 S2:0.000112 S3:0.000000
+[10:26:24] [训练] [Phase1 Epoch  34] Val Rel-MSE: 0.000148 | S1:0.000074 S2:0.000226 S3:0.000000
+[10:26:32] [训练] [Phase1 Epoch  35] Val Rel-MSE: 0.000043 | S1:0.000040 S2:0.000047 S3:0.000000
+[10:26:40] [训练] [Phase1 Epoch  36] Val Rel-MSE: 0.000083 | S1:0.000070 S2:0.000096 S3:0.000000
+[10:26:48] [训练] [Phase1 Epoch  37] Val Rel-MSE: 0.000046 | S1:0.000041 S2:0.000052 S3:0.000000
+[10:26:56] [训练] [Phase1 Epoch  38] Val Rel-MSE: 0.000076 | S1:0.000052 S2:0.000102 S3:0.000000
+[10:27:04] [训练] [Phase1 Epoch  39] Val Rel-MSE: 0.000043 | S1:0.000034 S2:0.000052 S3:0.000000
+[10:27:12] [训练] [Phase1 Epoch  40] Val Rel-MSE: 0.000126 | S1:0.000097 S2:0.000157 S3:0.000000
+[10:27:20] [训练] [Phase1 Epoch  41] Val Rel-MSE: 0.000047 | S1:0.000038 S2:0.000057 S3:0.000000
+[10:27:28] [训练] [Phase1 Epoch  42] Val Rel-MSE: 0.000121 | S1:0.000034 S2:0.000214 S3:0.000000
+[10:27:36] [训练] [Phase1 Epoch  43] Val Rel-MSE: 0.000040 | S1:0.000034 S2:0.000046 S3:0.000000
+[10:27:44] [训练] [Phase1 Epoch  44] Val Rel-MSE: 0.000040 | S1:0.000037 S2:0.000044 S3:0.000000
+[10:27:52] [训练] [Phase1 Epoch  45] Val Rel-MSE: 0.000049 | S1:0.000048 S2:0.000050 S3:0.000000
+[10:28:00] [训练] [Phase1 Epoch  46] Val Rel-MSE: 0.000036 | S1:0.000038 S2:0.000033 S3:0.000000
+[10:28:08] [训练] [Phase1 Epoch  47] Val Rel-MSE: 0.000040 | S1:0.000041 S2:0.000038 S3:0.000000
+[10:28:16] [训练] [Phase1 Epoch  48] Val Rel-MSE: 0.000052 | S1:0.000051 S2:0.000053 S3:0.000000
+[10:28:24] [训练] [Phase1 Epoch  49] Val Rel-MSE: 0.000035 | S1:0.000029 S2:0.000042 S3:0.000000
+[10:28:32] [训练] [Phase1 Epoch  50] Val Rel-MSE: 0.000033 | S1:0.000030 S2:0.000037 S3:0.000000
+[10:28:32] [训练] === Phase 2: Progressive Rollout ===
+[10:28:40] [训练] [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 0.000068 | S1:0.000040 S2:0.000097 S3:0.000000
+[10:28:48] [训练] [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 0.000048 | S1:0.000035 S2:0.000062 S3:0.000000
+[10:28:56] [训练] [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 0.000068 | S1:0.000058 S2:0.000078 S3:0.000000
+[10:29:04] [训练] [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 0.000212 | S1:0.000080 S2:0.000352 S3:0.000000
+[10:29:12] [训练] [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 0.000328 | S1:0.000136 S2:0.000532 S3:0.000000
+[10:29:20] [训练] [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 0.000047 | S1:0.000038 S2:0.000057 S3:0.000000
+[10:29:28] [训练] [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 0.000097 | S1:0.000067 S2:0.000129 S3:0.000000
+[10:29:36] [训练] [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 0.000068 | S1:0.000062 S2:0.000073 S3:0.000000
+[10:29:44] [训练] [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 0.000242 | S1:0.000119 S2:0.000374 S3:0.000000
+[10:29:52] [训练] [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 0.000042 | S1:0.000030 S2:0.000055 S3:0.000000
+[10:30:00] [训练] [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 0.000050 | S1:0.000037 S2:0.000064 S3:0.000000
+[10:30:10] [训练] [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 0.000064 | S1:0.000069 S2:0.000059 S3:0.000000
+[10:30:20] [训练] [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 0.000057 | S1:0.000056 S2:0.000058 S3:0.000000
+[10:30:33] [训练] [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 0.000231 | S1:0.000090 S2:0.000382 S3:0.000000
+[10:30:46] [训练] [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 0.000064 | S1:0.000048 S2:0.000081 S3:0.000000
+[10:31:01] [训练] [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 0.000088 | S1:0.000081 S2:0.000096 S3:0.000000
+[10:31:17] [训练] [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 0.000086 | S1:0.000034 S2:0.000141 S3:0.000000
+[10:31:35] [训练] [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 0.000058 | S1:0.000051 S2:0.000066 S3:0.000000
+[10:31:54] [训练] [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 0.000130 | S1:0.000046 S2:0.000220 S3:0.000000
+[10:32:15] [训练] [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 0.000069 | S1:0.000045 S2:0.000095 S3:0.000000
+[10:32:37] [训练] [Phase2 Epoch  21] roll=11 | Val Rel-MSE: 0.000077 | S1:0.000038 S2:0.000118 S3:0.000000
+[10:33:01] [训练] [Phase2 Epoch  22] roll=12 | Val Rel-MSE: 0.000039 | S1:0.000032 S2:0.000047 S3:0.000000
+[10:33:25] [训练] [Phase2 Epoch  23] roll=13 | Val Rel-MSE: 0.000030 | S1:0.000028 S2:0.000031 S3:0.000000
+[10:33:51] [训练] [Phase2 Epoch  24] roll=14 | Val Rel-MSE: 0.000074 | S1:0.000052 S2:0.000099 S3:0.000000
+[10:34:18] [训练] [Phase2 Epoch  25] roll=15 | Val Rel-MSE: 0.000038 | S1:0.000027 S2:0.000050 S3:0.000000
+[10:34:46] [训练] [Phase2 Epoch  26] roll=16 | Val Rel-MSE: 0.000121 | S1:0.000069 S2:0.000176 S3:0.000000
+[10:35:16] [训练] [Phase2 Epoch  27] roll=17 | Val Rel-MSE: 0.000053 | S1:0.000043 S2:0.000064 S3:0.000000
+[10:35:47] [训练] [Phase2 Epoch  28] roll=18 | Val Rel-MSE: 0.000032 | S1:0.000031 S2:0.000032 S3:0.000000
+[10:36:19] [训练] [Phase2 Epoch  29] roll=19 | Val Rel-MSE: 0.000045 | S1:0.000030 S2:0.000060 S3:0.000000
+[10:36:53] [训练] [Phase2 Epoch  30] roll=20 | Val Rel-MSE: 0.000040 | S1:0.000032 S2:0.000048 S3:0.000000
+[10:37:28] [训练] [Phase2 Epoch  31] roll=21 | Val Rel-MSE: 0.000045 | S1:0.000033 S2:0.000058 S3:0.000000
+[10:38:04] [训练] [Phase2 Epoch  32] roll=22 | Val Rel-MSE: 0.000062 | S1:0.000044 S2:0.000080 S3:0.000000
+[10:38:41] [训练] [Phase2 Epoch  33] roll=23 | Val Rel-MSE: 0.000127 | S1:0.000073 S2:0.000185 S3:0.000000
+[10:39:22] [训练] [Phase2 Epoch  34] roll=24 | Val Rel-MSE: 0.000040 | S1:0.000031 S2:0.000048 S3:0.000000
+[10:40:07] [训练] [Phase2 Epoch  35] roll=25 | Val Rel-MSE: 0.000030 | S1:0.000028 S2:0.000031 S3:0.000000
+[10:40:53] [训练] [Phase2 Epoch  36] roll=26 | Val Rel-MSE: 0.000034 | S1:0.000030 S2:0.000038 S3:0.000000
+[10:41:40] [训练] [Phase2 Epoch  37] roll=27 | Val Rel-MSE: 0.000032 | S1:0.000030 S2:0.000035 S3:0.000000
+[10:42:29] [训练] [Phase2 Epoch  38] roll=28 | Val Rel-MSE: 0.000030 | S1:0.000030 S2:0.000030 S3:0.000000
+[10:42:29] [训练] Training completed.
+[10:42:30] [训练] 训练完成 (1261s)
+  output=/home/apde/pde_project/a.Lem's workspace/output/runs/round1
+[10:42:30] [Subagent] 调用 eval_reflection
+  Baseline指标: {"overall": 8e-06, "seg1": 9e-06, "seg2": 8e-06, "seg3": 0.0}
+本轮指标: {"overall": 3e-05, "seg1": 3e-05, "seg2": 3e-05, "seg3": 0.0}
+假说: 多步 rollout 损失训练增强自回归稳定性
+训练时间: 1261s
+判定 IMPROVED/DEGRAD
+[10:42:48] [评估] Round 1 判定: DEGRADED
+  {"verdict": "DEGRADED", "score_change": {"baseline_total": 100, "current_total": 99.97, "delta": -0.03}, "segment_analysis": {"seg1": {"baseline": 9e-06, "current": 3e-05, "delta_pct": 233.33, "judgment": "退化"}, "seg2": {"baseline": 8e-06, "current": 3e-05, "delta_pct": 275.0, "judgment": "退化"}, "seg3": {"baseline": 0.0, "current": 0.0, "delta_pct": 0.0, "judgment": "持平"}}, "interpretation": "多步rollout损失导致所有短期（seg1）和中短期（seg2）误差激增，可能是自回归连接放大了训练过程中的梯度不稳定性，或展开步数未与模型能力匹配，破坏了单步精度。seg3未受影响因为测试时可能未模拟长时自回归。", "next_direction": "放弃多步rollout损失方向，恢复单步MSE训练。考虑引入更温和的物理正则化（如下一轮计划的Burgers方程残差约束）来提升短期精度，避免直接修改自回归展开。", "time_check": {"train_ok": true, "infer_ok": true, "warning": ""}}
+[10:42:48] [Captain] 回退到最优版本
+  snapshot=/home/apde/pde_project/a.Lem's workspace/output/snapshots/phase0_fno
+[10:42:48] [Captain] 触发外循环 — Proposal 基于最优版本重新出方案
+[10:42:48] [Captain] Round 2: 调度 Proposal
+[10:42:48] [Subagent] 调用 proposal
+  当前最优模型: fno, 指标: {"overall": 8e-06, "seg1": 9e-06, "seg2": 8e-06, "seg3": 0.0}。瓶颈: 分析 seg1/seg2/seg3 哪个是短板，提出 2-3 个改进假说。
+[10:43:58] [LLM推理] 选中假说: [P0] 扩大 FNO 的傅里叶模态数与通道宽度，增强初期激波高频表征
+[10:43:58] [Captain] 保存快照: round2_pre
+  ckpt=/home/apde/pde_project/a.Lem's workspace/output/runs/phase0_fno/best_phase2.pt
+[10:43:58] [Subagent] 调用 dev
+  假说: 扩大 FNO 的傅里叶模态数与通道宽度，增强初期激波高频表征
+修改目标: {"file": "model.py", "layer": "FNO 类的构造函数或配置文件中的参数定义", "change": "将 modes 从 12 提升到 20（或 24），width 从 20 提升到 32（保持两者比值合理）。若原为列表 modes=[12,12]，改为 [20,20]；width 参数
+[10:44:36] [Captain] 编辑 model.py: ✓ def __init__(self, modes: int = 12, widt → def __init__(self, modes: int = 24, widt
+[10:44:38] [Captain] 实例化检查: PASS
+  OK: MGNO1d input=[2, 256, 10] output=[2, 256]
+[10:44:38] [训练] 开始训练: round2
+  Phase1=50eps + Phase2=100eps | cmd=/home/apde/miniconda3/bin/python /home/apde/pde_project/a.Lem's workspace/train.py --train_data data/diff_sorp/train.h5 --val_data data/diff_sorp/val.h5 --save_dir /home/apde/pde_project/a.Lem's workspace/output/runs/round2
+[10:45:05] [训练] === Phase 1: Teacher Forcing ===
+[10:45:14] [训练] [Phase1 Epoch   1] Val Rel-MSE: 0.020394 | S1:0.013801 S2:0.027437 S3:0.000000
+[10:45:22] [训练] [Phase1 Epoch   2] Val Rel-MSE: 0.046682 | S1:0.011537 S2:0.084224 S3:0.000000
+[10:45:31] [训练] [Phase1 Epoch   3] Val Rel-MSE: 0.006091 | S1:0.004350 S2:0.007951 S3:0.000000
+[10:45:40] [训练] [Phase1 Epoch   4] Val Rel-MSE: 0.002604 | S1:0.002262 S2:0.002969 S3:0.000000
+[10:45:48] [训练] [Phase1 Epoch   5] Val Rel-MSE: 0.001840 | S1:0.001515 S2:0.002187 S3:0.000000
+[10:45:57] [训练] [Phase1 Epoch   6] Val Rel-MSE: 0.001104 | S1:0.000904 S2:0.001317 S3:0.000000
+[10:46:05] [训练] [Phase1 Epoch   7] Val Rel-MSE: 0.000998 | S1:0.000832 S2:0.001175 S3:0.000000
+[10:46:14] [训练] [Phase1 Epoch   8] Val Rel-MSE: 0.000659 | S1:0.000556 S2:0.000769 S3:0.000000
+[10:46:23] [训练] [Phase1 Epoch   9] Val Rel-MSE: 0.000485 | S1:0.000390 S2:0.000587 S3:0.000000
+[10:46:31] [训练] [Phase1 Epoch  10] Val Rel-MSE: 0.000340 | S1:0.000250 S2:0.000437 S3:0.000000
+[10:46:40] [训练] [Phase1 Epoch  11] Val Rel-MSE: 0.000250 | S1:0.000164 S2:0.000342 S3:0.000000
+[10:46:49] [训练] [Phase1 Epoch  12] Val Rel-MSE: 0.000339 | S1:0.000338 S2:0.000340 S3:0.000000
+[10:46:57] [训练] [Phase1 Epoch  13] Val Rel-MSE: 0.000261 | S1:0.000194 S2:0.000332 S3:0.000000
+[10:47:06] [训练] [Phase1 Epoch  14] Val Rel-MSE: 0.000268 | S1:0.000182 S2:0.000359 S3:0.000000
+[10:47:15] [训练] [Phase1 Epoch  15] Val Rel-MSE: 0.000167 | S1:0.000115 S2:0.000222 S3:0.000000
+[10:47:24] [训练] [Phase1 Epoch  16] Val Rel-MSE: 0.000307 | S1:0.000168 S2:0.000456 S3:0.000000
+[10:47:33] [训练] [Phase1 Epoch  17] Val Rel-MSE: 0.000342 | S1:0.000262 S2:0.000427 S3:0.000000
+[10:47:42] [训练] [Phase1 Epoch  18] Val Rel-MSE: 0.000230 | S1:0.000249 S2:0.000209 S3:0.000000
+[10:47:51] [训练] [Phase1 Epoch  19] Val Rel-MSE: 0.000117 | S1:0.000082 S2:0.000153 S3:0.000000
+[10:48:00] [训练] [Phase1 Epoch  20] Val Rel-MSE: 0.000169 | S1:0.000150 S2:0.000190 S3:0.000000
+[10:48:07] [训练] [Phase1 Epoch  21] Val Rel-MSE: 0.000177 | S1:0.000092 S2:0.000268 S3:0.000000
+[10:48:16] [训练] [Phase1 Epoch  22] Val Rel-MSE: 0.000173 | S1:0.000124 S2:0.000226 S3:0.000000
+[10:48:24] [训练] [Phase1 Epoch  23] Val Rel-MSE: 0.000266 | S1:0.000126 S2:0.000415 S3:0.000000
+[10:48:33] [训练] [Phase1 Epoch  24] Val Rel-MSE: 0.000116 | S1:0.000060 S2:0.000176 S3:0.000000
+[10:48:42] [训练] [Phase1 Epoch  25] Val Rel-MSE: 0.000127 | S1:0.000113 S2:0.000142 S3:0.000000
+[10:48:51] [训练] [Phase1 Epoch  26] Val Rel-MSE: 0.000140 | S1:0.000095 S2:0.000188 S3:0.000000
+[10:48:59] [训练] [Phase1 Epoch  27] Val Rel-MSE: 0.000103 | S1:0.000046 S2:0.000164 S3:0.000000
+[10:49:07] [训练] [Phase1 Epoch  28] Val Rel-MSE: 0.000053 | S1:0.000042 S2:0.000063 S3:0.000000
+[10:49:16] [训练] [Phase1 Epoch  29] Val Rel-MSE: 0.000055 | S1:0.000043 S2:0.000069 S3:0.000000
+[10:49:25] [训练] [Phase1 Epoch  30] Val Rel-MSE: 0.000089 | S1:0.000047 S2:0.000135 S3:0.000000
+[10:49:33] [训练] [Phase1 Epoch  31] Val Rel-MSE: 0.000087 | S1:0.000069 S2:0.000106 S3:0.000000
+[10:49:42] [训练] [Phase1 Epoch  32] Val Rel-MSE: 0.000122 | S1:0.000109 S2:0.000136 S3:0.000000
+[10:49:51] [训练] [Phase1 Epoch  33] Val Rel-MSE: 0.000113 | S1:0.000096 S2:0.000131 S3:0.000000
+[10:49:59] [训练] [Phase1 Epoch  34] Val Rel-MSE: 0.000222 | S1:0.000103 S2:0.000349 S3:0.000000
+[10:50:08] [训练] [Phase1 Epoch  35] Val Rel-MSE: 0.000069 | S1:0.000043 S2:0.000097 S3:0.000000
+[10:50:17] [训练] [Phase1 Epoch  36] Val Rel-MSE: 0.000070 | S1:0.000059 S2:0.000081 S3:0.000000
+[10:50:26] [训练] [Phase1 Epoch  37] Val Rel-MSE: 0.000064 | S1:0.000046 S2:0.000085 S3:0.000000
+[10:50:35] [训练] [Phase1 Epoch  38] Val Rel-MSE: 0.000030 | S1:0.000028 S2:0.000034 S3:0.000000
+[10:50:44] [训练] [Phase1 Epoch  39] Val Rel-MSE: 0.000038 | S1:0.000025 S2:0.000052 S3:0.000000
+[10:50:52] [训练] [Phase1 Epoch  40] Val Rel-MSE: 0.000023 | S1:0.000018 S2:0.000028 S3:0.000000
+[10:51:00] [训练] [Phase1 Epoch  41] Val Rel-MSE: 0.000019 | S1:0.000017 S2:0.000021 S3:0.000000
+[10:51:09] [训练] [Phase1 Epoch  42] Val Rel-MSE: 0.000033 | S1:0.000022 S2:0.000045 S3:0.000000
+[10:51:18] [训练] [Phase1 Epoch  43] Val Rel-MSE: 0.000028 | S1:0.000020 S2:0.000036 S3:0.000000
+[10:51:27] [训练] [Phase1 Epoch  44] Val Rel-MSE: 0.000017 | S1:0.000015 S2:0.000020 S3:0.000000
+[10:51:36] [训练] [Phase1 Epoch  45] Val Rel-MSE: 0.000022 | S1:0.000014 S2:0.000031 S3:0.000000
+[10:51:45] [训练] [Phase1 Epoch  46] Val Rel-MSE: 0.000021 | S1:0.000013 S2:0.000030 S3:0.000000
+[10:51:54] [训练] [Phase1 Epoch  47] Val Rel-MSE: 0.000016 | S1:0.000014 S2:0.000018 S3:0.000000
+[10:52:03] [训练] [Phase1 Epoch  48] Val Rel-MSE: 0.000029 | S1:0.000015 S2:0.000045 S3:0.000000
+[10:52:12] [训练] [Phase1 Epoch  49] Val Rel-MSE: 0.000016 | S1:0.000014 S2:0.000018 S3:0.000000
+[10:52:21] [训练] [Phase1 Epoch  50] Val Rel-MSE: 0.000016 | S1:0.000013 S2:0.000019 S3:0.000000
+[10:52:21] [训练] === Phase 2: Progressive Rollout ===
+[10:52:30] [训练] [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 0.000124 | S1:0.000036 S2:0.000218 S3:0.000000
+[10:52:38] [训练] [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 0.000039 | S1:0.000031 S2:0.000049 S3:0.000000
+[10:52:47] [训练] [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 0.000048 | S1:0.000027 S2:0.000070 S3:0.000000
+[10:52:56] [训练] [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 0.000028 | S1:0.000027 S2:0.000029 S3:0.000000
+[10:53:05] [训练] [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 0.000019 | S1:0.000017 S2:0.000021 S3:0.000000
+[10:53:14] [训练] [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 0.000043 | S1:0.000023 S2:0.000065 S3:0.000000
+[10:53:23] [训练] [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 0.000026 | S1:0.000016 S2:0.000037 S3:0.000000
+[10:53:32] [训练] [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 0.000019 | S1:0.000018 S2:0.000020 S3:0.000000
+[10:53:42] [训练] [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 0.000023 | S1:0.000014 S2:0.000033 S3:0.000000
+[10:53:51] [训练] [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 0.000046 | S1:0.000020 S2:0.000075 S3:0.000000
+[10:53:59] [训练] [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 0.000026 | S1:0.000015 S2:0.000038 S3:0.000000
+[10:54:09] [训练] [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 0.000024 | S1:0.000016 S2:0.000033 S3:0.000000
+[10:54:21] [训练] [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 0.000021 | S1:0.000014 S2:0.000029 S3:0.000000
+[10:54:35] [训练] [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 0.000017 | S1:0.000014 S2:0.000020 S3:0.000000
+[10:54:51] [训练] [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 0.000032 | S1:0.000026 S2:0.000039 S3:0.000000
+[10:55:08] [训练] [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 0.000015 | S1:0.000013 S2:0.000018 S3:0.000000
+[10:55:27] [训练] [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 0.000017 | S1:0.000014 S2:0.000021 S3:0.000000
+[10:55:47] [训练] [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 0.000022 | S1:0.000016 S2:0.000029 S3:0.000000
+[10:56:08] [训练] [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 0.000013 | S1:0.000012 S2:0.000013 S3:0.000000
+[10:56:32] [训练] [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 0.000016 | S1:0.000012 S2:0.000020 S3:0.000000
+[10:56:57] [训练] [Phase2 Epoch  21] roll=11 | Val Rel-MSE: 0.000040 | S1:0.000025 S2:0.000055 S3:0.000000
+[10:57:23] [训练] [Phase2 Epoch  22] roll=12 | Val Rel-MSE: 0.000051 | S1:0.000040 S2:0.000063 S3:0.000000
+[10:57:51] [训练] [Phase2 Epoch  23] roll=13 | Val Rel-MSE: 0.000013 | S1:0.000012 S2:0.000014 S3:0.000000
+[10:58:20] [训练] [Phase2 Epoch  24] roll=14 | Val Rel-MSE: 0.000034 | S1:0.000015 S2:0.000053 S3:0.000000
+[10:58:51] [训练] [Phase2 Epoch  25] roll=15 | Val Rel-MSE: 0.000016 | S1:0.000015 S2:0.000017 S3:0.000000
+[10:59:23] [训练] [Phase2 Epoch  26] roll=16 | Val Rel-MSE: 0.000012 | S1:0.000011 S2:0.000012 S3:0.000000
+[10:59:58] [训练] [Phase2 Epoch  27] roll=17 | Val Rel-MSE: 0.000039 | S1:0.000028 S2:0.000050 S3:0.000000
+[11:00:33] [训练] [Phase2 Epoch  28] roll=18 | Val Rel-MSE: 0.000014 | S1:0.000011 S2:0.000016 S3:0.000000
+[11:01:10] [训练] [Phase2 Epoch  29] roll=19 | Val Rel-MSE: 0.000014 | S1:0.000011 S2:0.000018 S3:0.000000
+[11:01:48] [训练] [Phase2 Epoch  30] roll=20 | Val Rel-MSE: 0.000027 | S1:0.000017 S2:0.000037 S3:0.000000
+[11:02:28] [训练] [Phase2 Epoch  31] roll=21 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[11:03:10] [训练] [Phase2 Epoch  32] roll=22 | Val Rel-MSE: 0.000009 | S1:0.000009 S2:0.000009 S3:0.000000
+[11:03:53] [训练] [Phase2 Epoch  33] roll=23 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000010 S3:0.000000
+[11:04:37] [训练] [Phase2 Epoch  34] roll=24 | Val Rel-MSE: 0.000011 | S1:0.000010 S2:0.000013 S3:0.000000
+[11:05:24] [训练] [Phase2 Epoch  35] roll=25 | Val Rel-MSE: 0.000023 | S1:0.000015 S2:0.000032 S3:0.000000
+[11:06:11] [训练] [Phase2 Epoch  36] roll=26 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000011 S3:0.000000
+[11:07:01] [训练] [Phase2 Epoch  37] roll=27 | Val Rel-MSE: 0.000013 | S1:0.000011 S2:0.000014 S3:0.000000
+[11:07:51] [训练] [Phase2 Epoch  38] roll=28 | Val Rel-MSE: 0.000027 | S1:0.000016 S2:0.000038 S3:0.000000
+[11:08:43] [训练] [Phase2 Epoch  39] roll=29 | Val Rel-MSE: 0.000013 | S1:0.000012 S2:0.000015 S3:0.000000
+[11:09:36] [训练] [Phase2 Epoch  40] roll=30 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[11:10:32] [训练] [Phase2 Epoch  41] roll=31 | Val Rel-MSE: 0.000012 | S1:0.000012 S2:0.000011 S3:0.000000
+[11:11:28] [训练] [Phase2 Epoch  42] roll=32 | Val Rel-MSE: 0.000011 | S1:0.000010 S2:0.000011 S3:0.000000
+[11:12:27] [训练] [Phase2 Epoch  43] roll=33 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[11:13:27] [训练] [Phase2 Epoch  44] roll=34 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000007 S3:0.000000
+[11:14:27] [训练] [Phase2 Epoch  45] roll=35 | Val Rel-MSE: 0.000012 | S1:0.000012 S2:0.000012 S3:0.000000
+[11:15:30] [训练] [Phase2 Epoch  46] roll=36 | Val Rel-MSE: 0.000011 | S1:0.000011 S2:0.000010 S3:0.000000
+[11:16:36] [训练] [Phase2 Epoch  47] roll=37 | Val Rel-MSE: 0.000009 | S1:0.000011 S2:0.000008 S3:0.000000
+[11:17:40] [训练] [Phase2 Epoch  48] roll=38 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000009 S3:0.000000
+[11:18:38] [训练] [Phase2 Epoch  49] roll=39 | Val Rel-MSE: 0.000010 | S1:0.000010 S2:0.000009 S3:0.000000
+[11:19:35] [训练] [Phase2 Epoch  50] roll=40 | Val Rel-MSE: 0.000011 | S1:0.000012 S2:0.000010 S3:0.000000
+[11:20:33] [训练] [Phase2 Epoch  51] roll=41 | Val Rel-MSE: 0.000011 | S1:0.000012 S2:0.000011 S3:0.000000
+[11:21:33] [训练] [Phase2 Epoch  52] roll=42 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000006 S3:0.000000
+[11:22:34] [训练] [Phase2 Epoch  53] roll=43 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000006 S3:0.000000
+[11:23:36] [训练] [Phase2 Epoch  54] roll=44 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000006 S3:0.000000
+[11:24:40] [训练] [Phase2 Epoch  55] roll=46 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000006 S3:0.000000
+[11:25:46] [训练] [Phase2 Epoch  56] roll=47 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000008 S3:0.000000
+[11:26:52] [训练] [Phase2 Epoch  57] roll=48 | Val Rel-MSE: 0.000010 | S1:0.000011 S2:0.000010 S3:0.000000
+[11:28:00] [训练] [Phase2 Epoch  58] roll=49 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000007 S3:0.000000
+[11:29:09] [训练] [Phase2 Epoch  59] roll=50 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000006 S3:0.000000
+[11:30:21] [训练] [Phase2 Epoch  60] roll=52 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:31:34] [训练] [Phase2 Epoch  61] roll=53 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000007 S3:0.000000
+[11:32:49] [训练] [Phase2 Epoch  62] roll=54 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000008 S3:0.000000
+[11:34:04] [训练] [Phase2 Epoch  63] roll=55 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000007 S3:0.000000
+[11:35:21] [训练] [Phase2 Epoch  64] roll=56 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000007 S3:0.000000
+[11:36:41] [训练] [Phase2 Epoch  65] roll=58 | Val Rel-MSE: 0.000008 | S1:0.000010 S2:0.000006 S3:0.000000
+[11:38:01] [训练] [Phase2 Epoch  66] roll=59 | Val Rel-MSE: 0.000009 | S1:0.000010 S2:0.000007 S3:0.000000
+[11:39:23] [训练] [Phase2 Epoch  67] roll=60 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000007 S3:0.000000
+[11:40:46] [训练] [Phase2 Epoch  68] roll=61 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:42:10] [训练] [Phase2 Epoch  69] roll=62 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:43:37] [训练] [Phase2 Epoch  70] roll=64 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:45:04] [训练] [Phase2 Epoch  71] roll=65 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:46:33] [训练] [Phase2 Epoch  72] roll=66 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:48:03] [训练] [Phase2 Epoch  73] roll=67 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:49:34] [训练] [Phase2 Epoch  74] roll=68 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:51:08] [训练] [Phase2 Epoch  75] roll=70 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000007 S3:0.000000
+[11:52:43] [训练] [Phase2 Epoch  76] roll=71 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:54:19] [训练] [Phase2 Epoch  77] roll=72 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:55:55] [训练] [Phase2 Epoch  78] roll=73 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:57:34] [训练] [Phase2 Epoch  79] roll=74 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[11:59:14] [训练] [Phase2 Epoch  80] roll=76 | Val Rel-MSE: 0.000008 | S1:0.000009 S2:0.000007 S3:0.000000
+[12:00:56] [训练] [Phase2 Epoch  81] roll=77 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000006 S3:0.000000
+[12:02:38] [训练] [Phase2 Epoch  82] roll=78 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[12:04:23] [训练] [Phase2 Epoch  83] roll=79 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000006 S3:0.000000
+[12:06:08] [训练] [Phase2 Epoch  84] roll=80 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[12:07:56] [训练] [Phase2 Epoch  85] roll=82 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[12:09:57] [训练] [Phase2 Epoch  86] roll=83 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000006 S3:0.000000
+[12:12:14] [训练] [Phase2 Epoch  87] roll=84 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[12:14:31] [训练] [Phase2 Epoch  88] roll=85 | Val Rel-MSE: 0.000007 | S1:0.000009 S2:0.000006 S3:0.000000
+[12:16:52] [训练] [Phase2 Epoch  89] roll=86 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000006 S3:0.000000
+[12:19:19] [训练] [Phase2 Epoch  90] roll=88 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000006 S3:0.000000
+[12:21:45] [训练] [Phase2 Epoch  91] roll=89 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000007 S3:0.000000
+[12:24:11] [训练] [Phase2 Epoch  92] roll=90 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000007 S3:0.000000
+[12:24:18] [训练] [Phase2 Epoch  93] roll=91 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000007 S3:0.000000
+[12:24:25] [训练] [Phase2 Epoch  94] roll=92 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000007 S3:0.000000
+[12:24:31] [训练] [Phase2 Epoch  95] roll=94 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000007 S3:0.000000
+[12:24:38] [训练] [Phase2 Epoch  96] roll=95 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000007 S3:0.000000
+[12:24:45] [训练] [Phase2 Epoch  97] roll=96 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000007 S3:0.000000
+[12:24:52] [训练] [Phase2 Epoch  98] roll=97 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000007 S3:0.000000
+[12:24:59] [训练] [Phase2 Epoch  99] roll=98 | Val Rel-MSE: 0.000007 | S1:0.000008 S2:0.000007 S3:0.000000
+[12:24:59] [训练] Training completed.
+[12:24:59] [训练] 训练完成 (6021s)
+  output=/home/apde/pde_project/a.Lem's workspace/output/runs/round2
+[12:24:59] [Subagent] 调用 eval_reflection
+  Baseline指标: {"overall": 8e-06, "seg1": 9e-06, "seg2": 8e-06, "seg3": 0.0}
+本轮指标: {"overall": 7e-06, "seg1": 8e-06, "seg2": 7e-06, "seg3": 0.0}
+假说: 扩大 FNO 的傅里叶模态数与通道宽度，增强初期激波高频表征
+训练时间: 6021s
+判定 IMPROVED
+[12:25:13] [评估] Round 2 判定: IMPROVED
+  {"verdict": "IMPROVED", "score_change": {"baseline_total": 94.4, "current_total": 95.5, "delta": 1.1}, "segment_analysis": {"seg1": {"baseline": 9e-06, "current": 8e-06, "delta_pct": -11.1, "judgment": "改善"}, "seg2": {"baseline": 8e-06, "current": 7e-06, "delta_pct": -12.5, "judgment": "改善"}, "seg3": {"baseline": 0.0, "current": 0.0, "delta_pct": 0.0, "judgment": "持平"}}, "interpretation": "扩大 Fourier modes 和 width 有效增强了 FNO 的高频表征能力，短时和中时误差均下降 10% 以上，且无长时退化，假说完全成立。", "next_direction": "该方向有效，可继续探索更大的模态数边界或结合注意力机制进一步降低 seg1/seg2 误差。", "time_check": {"train_ok": true, "infer_ok": true, "warning": ""}}
+[12:25:13] [Captain] 保存快照: round2_best
+  ckpt=/home/apde/pde_project/a.Lem's workspace/output/runs/phase0_fno/best_phase2.pt

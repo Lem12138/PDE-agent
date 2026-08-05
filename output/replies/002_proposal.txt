@@ -1,51 +1,51 @@
 {
-  "analysis": "seg1 误差 (6e-06) 为短板，比 seg2 高出一倍，很可能因为低粘度 Burgers 在早期迅速形成激波，频域中瞬时高频分量增加；当前 FNO (modes=12) 的频域截断导致激波钝化，短期预测精度受限。",
+  "analysis": "FNO 自回归第一段 (seg1) 误差略高于第二段，根因是训练仅用真值下一步的 MSE，未考虑自回归时的输入分布偏移，导致模型对自身预测的微小误差敏感，缺乏鲁棒性。",
   "hypotheses": [
     {
-      "id": "H1",
-      "priority": "P0",
-      "title": "增加 Fourier modes 以提升高频捕捉能力",
-      "physical_basis": "Burgers 方程 ν=0.001 下初始光滑场会快速演化出陡峭激波，频谱展宽。FNO 的谱方法靠 modes 保留频域信息，modes=12 截断了中高频能量，造成激波钝化、seg1 偏大。数据探测虽显示整体能量集中在基态，但瞬时特征需更多模式去捕捉。",
-      "expected_effect": "seg1 应下降至与 seg2 相近 (约 3-6e-06)，整体误差保持在 4e-06 以下，且不会显著增加推理时间。",
-      "target": {
-        "file": "model.py (FNO 类定义)",
-        "layer": "FNO 模块中的 modes 参数",
-        "change": "modes 从 12 提升至 16 (保守) 或 20 (激进)，相应调整 width 保持参数量合理 (width=32 可暂不调整)。若同时调整 width 到 48，可进一步补偿因增加 mode 带来的高频建模需求。",
-        "pseudo_code": "self.fno = FNO(modes=16, width=32, ...)  # 原 modes=12"
-      },
-      "risk": "低 — 训练时间可能从 1.4h 增加到约 2h，仍在 12h 上限内；推理时间受轻微影响，仍在 2min 内。",
-      "validation": "重新训练后观察 seg1 是否降到与 seg2 相近，同时监控 190 步自回归的长时误差 (seg3) 是否保持为零。"
-    },
-    {
-      "id": "H2",
-      "priority": "P0",
-      "title": "增加 FNO 层数以提升非线性表达能力",
-      "physical_basis": "早期激波生成涉及强非线性对流项 u·u_x，更深网络可更好地逼近局部非线性算子，缓解单层傅里叶层容量不足的问题。加深并不会改变频域截断精度，但能与 H1 协同提升对激波附近解的拟合。",
-      "expected_effect": "seg1 及 seg2 误差同时进一步降低，总误差可能进入 2-3e-06 量级。",
-      "target": {
-        "file": "model.py",
-        "layer": "FNO 的 n_layers 参数",
-        "change": "n_layers 从 4 提升至 6，需保持 width 和 modes 不变，或与 H1 联合提升 (modes=16, n_layers=6)。注意添加残差连接避免梯度消失。",
-        "pseudo_code": "self.fno = FNO(modes=16, width=32, n_layers=6, ...)"
-      },
-      "risk": "中 — 参数量增大，训练时间可能增加 50%，仍有充足余量；但需注意过拟合风险，可通过增加 dropout 或降低学习率缓解。",
-      "validation": "比较训练损失曲线、验证集 seg1 指标；也可对比 4 层与 6 层的频谱分析，确认高频残差是否减少。"
-    },
-    {
       "id": "H3",
-      "priority": "P1",
-      "title": "采用分段加权损失强调 seg1 区域",
-      "physical_basis": "当前训练很可能使用全时间步均匀 MSE 损失。若 seg1 的预测误差更关键，可在损失函数中对时间步 0~t_seg1 赋更高权重，强迫模型更准确学习激波形成阶段的动力学，从而降低 seg1。",
-      "expected_effect": "seg1 明显下降，seg2 可能略微上升但总体指标持平或改善。",
+      "priority": "P0",
+      "title": "多步 rollout 损失训练增强自回归稳定性",
+      "physical_basis": "神经算子作为离散动力系统模拟器，自回归演化时须对输入扰动不敏感。单步 MSE 训练不能保证模型在反馈自身输出时保持收敛。通过在训练中展开 2-3 步，最小化多步累积误差，可强制模型学习对预测偏差的校正能力，相当于实施一种影子化约束 (shadowing property)，从而降低自回归前几步的误差。",
+      "expected_effect": "seg1 预计降至 5e-06 以下，seg2 可能进一步改善，seg3 保持 0.0。整体误差有望到 3-4e-06。训练时间增加约 30%-50%，仍在 12h 内。",
       "target": {
-        "file": "train.py (损失计算部分)",
-        "layer": "loss = criterion(pred, target) 处",
-        "change": "添加时间维度的加权向量 W，其中前 n_seg1 步权重 = 2.0，其余步 = 1.0。总损失调整为加权 MSE。也可采用指数衰减权重。",
-        "pseudo_code": "weights = torch.ones(T).to(device); weights[:seg1_len] = 2.0; loss = (weights * ((pred-target)**2).mean(dim=(0,2))).mean()"
+        "file": "train.py",
+        "layer": "训练循环中的损失计算和前向过程",
+        "change": "修改 Phase2 训练：原先只用第一步的预测计算 MSE，改为从初始条件出发，用模型自回归 rollout k 步（k=2 或 3），计算每一步与真值的平均 MSE 作为损失。梯度通过整个 rollout 传播。k=2 平衡效果与开销。",
+        "pseudo_code": "# 在训练循环中\nk_rollout = 2\np_pred_list = []\np_input = p_x[:, 0:1, :]  # 初始帧\nfor step in range(k_rollout):\n    p_out = model(p_input)\n    p_pred_list.append(p_out)\n    p_input = p_out  # 自回归接入\nloss = sum(F.mse_loss(p_pred_list[i], p_y[:, i:i+1, :]) for i in range(k_rollout)) / k_rollout"
       },
-      "risk": "低 — 仅修改损失函数，不增加推理开销，但可能降低 seg2 精度，需验证。",
-      "validation": "监控验证集的 seg1/seg2/seg3 值，确保 seg2 不显著退化。"
+      "risk": "低 — 梯度路径变长可能导致显存增加，但 2 步 rollout 对 FNO 开销可控；未改变模型架构，不会引入 NaN。",
+      "validation": "训练后 seg1 是否显著低于 baseline 的 9e-06，同时 seg2 不高于 8e-06。"
+    },
+    {
+      "id": "H4",
+      "priority": "P0",
+      "title": "引入总质量守恒软约束损失",
+      "physical_basis": "Burgers 方程在周期边界下空间平均值 ∫u dx 严格守恒。当前模型纯数据驱动，未显式保证该保守性质。在损失函数中增加预测序列各时间步空间均值与初始均值偏差的惩罚项，可抑制低频漂移，虽 seg3 已为 0，但此约束可进一步提高自回归初始步 (seg1) 的稳定性和一致收敛性。",
+      "expected_effect": "seg1 预期下降至 6-7e-06，seg2 持平或微降，seg3 不变。训练时间几乎无增加。",
+      "target": {
+        "file": "train.py",
+        "layer": "损失计算",
+        "change": "在原有 mse_loss 上增加守恒损失项，权重 λ_cons = 0.1。对于预测序列 p_pred (shape [B, T, X])，计算每个时间步空间均值，与初始条件空间均值的差异平方和，取均值。",
+        "pseudo_code": "def mean_conservation_loss(p_pred, p_x0):\n    # p_pred: [B, T, X], p_x0: [B, 1, X] 初始帧\n    mean0 = p_x0.mean(dim=-1, keepdim=True)  # [B,1,1]\n    mean_t = p_pred.mean(dim=-1)             # [B,T]\n    return F.mse_loss(mean_t, mean0.expand_as(mean_t))\nloss = mse_loss + 0.1 * mean_conservation_loss(p_pred, p_x[:, 0:1, :])"
+      },
+      "risk": "低 — 梯度稳定，仅增加简单统计计算；权重 0.1 温和，不会干扰主要损失。",
+      "validation": "观察 seg1 降低，同时空间均值时间序列更平直。"
+    },
+    {
+      "id": "H5",
+      "priority": "P1",
+      "title": "调整 width/modes 平衡并加入 Dropout 防过拟合",
+      "physical_basis": "先前增大 modes→16 导致 seg2 恶化，怀疑模型过拟合高频噪声，因 width=32 未相应增加，容量不匹配。若将 width 升至 48，modes 保持 12，可增加傅里叶层表达能力；同时引入谱域 Dropout (FNO 中模式丢弃) 或通道 Dropout，可抑制对特定频带的依赖，提升泛化。理论上在不截断更多模式的情况下，更宽网络能更好利用现有模式，并提升短时预测精度。",
+      "expected_effect": "seg1 可能微降，seg2 至少不会像 R1 那样恶化。如果成功，整体误差 4-6e-06；若失败可回退。",
+      "target": {
+        "file": "model.py 及 train.py",
+        "layer": "FNO 类定义与训练设置",
+        "change": "modes=12 不变，width 从 32 改为 48；在 FNO 的 spectralConv 层后添加一个微小的 dropout (p=0.05) 或者实现随机 drop 模式（如 FNO 中随机置零部分高频模式）。训练超参保持。",
+        "pseudo_code": "self.conv0 = nn.Conv1d(1, 48, 1)\n... # 各层 width=48\nself.drop = nn.Dropout(0.05)  # 加在 spectralConv 输出的激活后面"
+      },
+      "risk": "中 — 增加宽度提升训练时长约 30%，且增加 dropout 可能改善但不确定；若 dropout 过强会欠拟合。可用小概率 0.05 起步，观察 seg1。",
+      "validation": "对比 baseline，要求 seg1, seg2 不差于 baseline，且不出现 R1 的 seg2 急剧升高。"
     }
   ],
-  "fallback": "若单靠频域扩展和加权损失仍不能使 seg1 降至 seg2 水平，可探索物理约束损失（添加 ∫u dx 守恒罚项）或使用 MGNO 作为教师模型蒸馏 FNO，将多尺度机制引入 FNO。"
+  "fallback": "如果多步 rollout 和守恒约束均无法降低 seg1，则考虑使用数据增强（输入添加微小高斯噪声）配合更长的训练 epoch，或更换优化器为 AdamW，从学习率调度上精细调参。"
 }

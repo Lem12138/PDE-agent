@@ -1,21 +1,21 @@
 {
   "verdict": "DEGRADED",
   "score_change": {
-    "baseline_total": 99.996,
-    "current_total": 99.99,
-    "delta": -0.006
+    "baseline_total": 100,
+    "current_total": 99.97,
+    "delta": -0.03
   },
   "segment_analysis": {
     "seg1": {
-      "baseline": 6e-06,
-      "current": 8e-06,
-      "delta_pct": 33.3,
+      "baseline": 9e-06,
+      "current": 3e-05,
+      "delta_pct": 233.33,
       "judgment": "退化"
     },
     "seg2": {
-      "baseline": 3e-06,
-      "current": 2.3e-05,
-      "delta_pct": 666.7,
+      "baseline": 8e-06,
+      "current": 3e-05,
+      "delta_pct": 275.00,
       "judgment": "退化"
     },
     "seg3": {
@@ -25,11 +25,11 @@
       "judgment": "持平"
     }
   },
-  "interpretation": "增加 Fourier modes 不但未改善 seg1，反而导致 seg2 剧烈恶化（从 3e-06 升至 2.3e-05），说明扩大谱容量在当前设定下引入高频过拟合/优化不稳定，破坏了中短期 rollout 能力。seg3 保持为零仅表明长时解没有发散，但整体已严重逆行。",
-  "next_direction": "立即放弃本方向。恢复 baseline 的 modes=12；优先排查训练是否充分（本轮仅 37.6 min，比 baseline 的 1.4 h 少得多，可能因参数调整后 loss 震荡导致早停）。若需增强高频建模，应从其他途径（如更优的 width 调整、学习率调度或残差连接权重）入手，而非直接增加 modes。",
+  "interpretation": "多步rollout损失导致所有短期（seg1）和中短期（seg2）误差激增，可能是自回归连接放大了训练过程中的梯度不稳定性，或展开步数未与模型能力匹配，破坏了单步精度。seg3未受影响因为测试时可能未模拟长时自回归。",
+  "next_direction": "放弃多步rollout损失方向，恢复单步MSE训练。考虑引入更温和的物理正则化（如下一轮计划的Burgers方程残差约束）来提升短期精度，避免直接修改自回归展开。",
   "time_check": {
     "train_ok": true,
     "infer_ok": true,
-    "warning": "训练 2256 s（约 38 min），远低于 12 h 上限，甚至短于 baseline 训练时间，需确认是否为训练不充分导致的退化。"
+    "warning": ""
   }
 }

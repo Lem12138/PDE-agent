@@ -10,33 +10,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def compute_residual(u_pred: torch.Tensor, dt: float, dx: float, nu: float = 0.001) -> torch.Tensor:
-    """Compute mean squared Burgers residual.
-
-    u_pred: (B, T, X) – predicted spatiotemporal field.
-    dt: time step size.
-    dx: spatial grid spacing.
-    nu: viscosity coefficient (default 0.001).
-
-    Returns scalar mean squared residual.
-    """
-    # Central difference in time
-    u_t = (u_pred[:, 2:, :] - u_pred[:, :-2, :]) / (2 * dt)                     # (B, T-2, X)
-    # Central difference in space (on interior time points)
-    u_x = (u_pred[:, 1:-1, 2:] - u_pred[:, 1:-1, :-2]) / (2 * dx)              # (B, T-2, X-2)
-    # Second derivative in space
-    u_xx = (
-        u_pred[:, 1:-1, 2:]
-        - 2 * u_pred[:, 1:-1, 1:-1]
-        + u_pred[:, 1:-1, :-2]
-    ) / (dx ** 2)                                                              # (B, T-2, X-2)
-    # Aligned u
-    u = u_pred[:, 1:-1, 1:-1]                                                  # (B, T-2, X-2)
-    # Burgers residual: u_t + u * u_x - nu * u_xx
-    residual = u_t[:, :, 1:-1] + u * u_x - nu * u_xx
-    return torch.mean(residual ** 2)
-
-
 class SpectralConv1d(nn.Module):
     """1D Fourier spectral convolution – same as FNO baseline."""
 
@@ -92,7 +65,7 @@ class MGNO1d(nn.Module):
         n_scales: Number of resolution levels (default 3).
     """
 
-    def __init__(self, modes: int = 12, width: int = 32, in_channels: int = 10,
+    def __init__(self, modes: int = 24, width: int = 32, in_channels: int = 10,
                  out_channels: int = 1, n_layers: int = 4, n_scales: int = 3, **kwargs):
         super().__init__()
         blocks_per_scale = max(1, n_layers // n_scales)

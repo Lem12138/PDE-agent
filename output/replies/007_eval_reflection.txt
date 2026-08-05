@@ -1,0 +1,35 @@
+{
+  "verdict": "IMPROVED",
+  "score_change": {
+    "baseline_total": 94.4,
+    "current_total": 95.5,
+    "delta": 1.1
+  },
+  "segment_analysis": {
+    "seg1": {
+      "baseline": 9e-06,
+      "current": 8e-06,
+      "delta_pct": -11.1,
+      "judgment": "改善"
+    },
+    "seg2": {
+      "baseline": 8e-06,
+      "current": 7e-06,
+      "delta_pct": -12.5,
+      "judgment": "改善"
+    },
+    "seg3": {
+      "baseline": 0.0,
+      "current": 0.0,
+      "delta_pct": 0.0,
+      "judgment": "持平"
+    }
+  },
+  "interpretation": "扩大 Fourier modes 和 width 有效增强了 FNO 的高频表征能力，短时和中时误差均下降 10% 以上，且无长时退化，假说完全成立。",
+  "next_direction": "该方向有效，可继续探索更大的模态数边界或结合注意力机制进一步降低 seg1/seg2 误差。",
+  "time_check": {
+    "train_ok": true,
+    "infer_ok": true,
+    "warning": ""
+  }
+}
