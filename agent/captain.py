@@ -4,14 +4,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-# Ensure workspace on path
-WORKSPACE = os.path.dirname(os.path.abspath(__file__))
-if WORKSPACE not in sys.path:
-    sys.path.insert(0, WORKSPACE)
+# Package and workspace paths
+AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
+WORKSPACE = os.path.dirname(AGENT_DIR)
+for _module_path in (WORKSPACE, AGENT_DIR):
+    if _module_path not in sys.path:
+        sys.path.insert(0, _module_path)
 
-from llm_client import get_client
+from agent.llm_client import get_client
 from shared_memory import GraphMemory, ResourcePool
-from data_probe import probe_hdf5, format_probe_report
+from tools.data_probe import probe_hdf5, format_probe_report
 
 # ====================================================================
 # 路径常量
@@ -19,6 +21,9 @@ from data_probe import probe_hdf5, format_probe_report
 PROJECT_ROOT = os.path.abspath(os.path.join(WORKSPACE, ".."))
 DATA_DIR = os.path.join(PROJECT_ROOT, "Official Data and Sample", "data_and_sample_submission", "train_val_test_init")
 
+MODEL_PATH = os.path.join(AGENT_DIR, "model.py")
+TRAIN_SCRIPT = os.path.join(AGENT_DIR, "train.py")
+AGENT_UTILS_PATH = os.path.join(AGENT_DIR, "utils.py")
 TEMPLATES_DIR = os.path.join(WORKSPACE, "templates")
 PROMPTS_DIR = os.path.join(WORKSPACE, "prompts")
 OUTPUT_DIR = os.path.join(WORKSPACE, "output")
@@ -126,7 +131,7 @@ class Captain:
         """备份当前 model.py 和最优 checkpoint 路径。"""
         snap_dir = os.path.join(self.snapshot_dir, label)
         os.makedirs(snap_dir, exist_ok=True)
-        model_py = os.path.join(WORKSPACE, "model.py")
+        model_py = MODEL_PATH
         if os.path.exists(model_py):
             shutil.copy2(model_py, os.path.join(snap_dir, "model.py"))
         # 记录 ckpt 路径
@@ -145,7 +150,7 @@ class Captain:
         # 恢复 model.py
         src_model = os.path.join(self.best_code_dir, "model.py")
         if os.path.exists(src_model):
-            shutil.copy2(src_model, os.path.join(WORKSPACE, "model.py"))
+            shutil.copy2(src_model, MODEL_PATH)
         # 恢复 ckpt 路径
         ckpt_txt = os.path.join(self.best_code_dir, "checkpoint_path.txt")
         if os.path.exists(ckpt_txt):
@@ -184,7 +189,7 @@ class Captain:
     # ================================================================
     def _run_training(self, run_label: str, extra_args: dict | None = None) -> tuple[bool, float]:
         """subprocess 执行 train.py，实时流式输出到 captain 日志。返回 (success, train_time_seconds)。"""
-        train_script = os.path.join(WORKSPACE, "train.py")
+        train_script = TRAIN_SCRIPT
         if not os.path.exists(train_script):
             self._trace("training", "train.py 不存在", "")
             return False, 0
@@ -264,7 +269,7 @@ class Captain:
 
     def _launch_training(self, run_label: str, extra_args: dict | None = None) -> dict:
         """非阻塞启动训练子进程，返回 handle 供 _wait_training 使用。"""
-        train_script = os.path.join(WORKSPACE, "train.py")
+        train_script = TRAIN_SCRIPT
         if not os.path.exists(train_script):
             self._trace("training", "train.py 不存在", "")
             return {"label": run_label, "proc": None, "error": "no train.py"}
@@ -341,7 +346,7 @@ class Captain:
     # Phase 0: Baseline Establishment
     # ================================================================
     def _copy_template(self, model_name: str) -> bool:
-        """从模板目录复制模型代码到 workspace/model.py。模板已验证正确。"""
+        """从模板目录复制模型代码到 agent/model.py。模板已验证正确。"""
         # 查找模板文件
         candidates = [
             os.path.join(TEMPLATES_DIR, model_name, f"{model_name}.py"),
@@ -355,12 +360,12 @@ class Captain:
 
         for src in candidates:
             if os.path.exists(src):
-                shutil.copy2(src, os.path.join(WORKSPACE, "model.py"))
+                shutil.copy2(src, MODEL_PATH)
                 self._trace("action", f"从模板复制: {os.path.basename(src)} → model.py")
                 # 如果模板有独立 utils.py，也复制
                 utils_src = os.path.join(os.path.dirname(src), "utils.py")
                 if os.path.exists(utils_src):
-                    shutil.copy2(utils_src, os.path.join(WORKSPACE, "utils.py"))
+                    shutil.copy2(utils_src, AGENT_UTILS_PATH)
                 return True
         return False
 
@@ -398,7 +403,7 @@ class Captain:
                 self._extract_code(dev_reply)
 
             # 2) 语法校验 + 实例化检查（带快速修复 + 模板回退）
-            model_py = os.path.join(WORKSPACE, "model.py")
+            model_py = MODEL_PATH
             if not self._validate_python(model_py):
                 self._trace("action", f"Scout: {model_name} 语法失败，尝试修复", "")
                 if not self._scout_quick_fix("语法错误", model_name):
@@ -496,7 +501,7 @@ class Captain:
             )
             dev_reply = self._call_subagent("dev", fix_task)
             self._apply_edits(dev_reply)
-            if self._validate_python(os.path.join(WORKSPACE, "model.py")):
+            if self._validate_python(MODEL_PATH):
                 # 语法通过还不够，必须能实例化 + forward
                 if self._instantiation_check():
                     return True
@@ -653,7 +658,7 @@ class Captain:
                 self._extract_code(dev_reply)
 
             # 语法校验
-            if not self._validate_python(os.path.join(WORKSPACE, "model.py")):
+            if not self._validate_python(MODEL_PATH):
                 self._trace("action", f"{model_name} 语法校验失败，跳过", "")
                 results.append({"model": model_name, "error": "syntax"})
                 continue
@@ -853,7 +858,7 @@ class Captain:
             self._apply_edits(dev_reply)
 
             # 语法校验 + 实例化检查
-            if not self._validate_python(os.path.join(WORKSPACE, "model.py")):
+            if not self._validate_python(MODEL_PATH):
                 self._trace("action", "语法校验失败，触发内循环修复", "")
                 if not self._inner_loop_fix("语法错误"):
                     continue
@@ -961,7 +966,7 @@ class Captain:
             dev_reply = self._call_subagent("dev", fix_task)
             self._apply_edits(dev_reply)
 
-            if self._validate_python(os.path.join(WORKSPACE, "model.py")):
+            if self._validate_python(MODEL_PATH):
                 # 语法通过还不够，必须能实例化 + forward 才算修复成功
                 if self._instantiation_check():
                     return True
@@ -997,7 +1002,7 @@ class Captain:
     # 辅助方法
     # ================================================================
     def _read_current_model(self) -> str:
-        mp = os.path.join(WORKSPACE, "model.py")
+        mp = MODEL_PATH
         if os.path.exists(mp):
             with open(mp, "r") as f:
                 return f.read()
@@ -1067,8 +1072,8 @@ print(f'OK: {cls.__name__} input={list(x.shape)} output={list(y.shape)}')
 """
         try:
             proc = subprocess.run(
-                [sys.executable, "-c", check_script],
-                capture_output=True, text=True, timeout=30, cwd=WORKSPACE,
+                [sys.executable, "-B", "-c", check_script],
+                capture_output=True, text=True, timeout=30, cwd=AGENT_DIR,
             )
             ok = proc.returncode == 0 and "OK:" in proc.stdout
             self._trace("action",
@@ -1119,7 +1124,7 @@ print(f'OK: {cls.__name__} input={list(x.shape)} output={list(y.shape)}')
         3. 裸代码回退
         """
         saved = []
-        model_py = os.path.join(WORKSPACE, "model.py")
+        model_py = MODEL_PATH
         # train.py is a permanent framework file — never overwrite from LLM output
         train_py = os.devnull
 
@@ -1194,7 +1199,8 @@ print(f'OK: {cls.__name__} input={list(x.shape)} output={list(y.shape)}')
             if parsed and parsed.get("mode") == "generate":
                 files = parsed.get("files", {})
                 for fname, code in files.items():
-                    fpath = os.path.join(WORKSPACE, fname)
+                    safe_name = os.path.basename(str(fname))
+                    fpath = os.path.join(AGENT_DIR, safe_name)
                     os.makedirs(os.path.dirname(fpath), exist_ok=True)
                     # JSON 里的代码可能把真换行存成了 \\n 字符串
                     if isinstance(code, str) and '\\n' in code and code.count('\n') < 5:
@@ -1221,7 +1227,8 @@ print(f'OK: {cls.__name__} input={list(x.shape)} output={list(y.shape)}')
 
         for edit in parsed.get("edits", []):
             fname = edit.get("file", "model.py")
-            fpath = os.path.join(WORKSPACE, fname)
+            safe_name = os.path.basename(str(fname))
+            fpath = os.path.join(AGENT_DIR, safe_name)
             if not os.path.exists(fpath):
                 continue
             with open(fpath, "r") as f:

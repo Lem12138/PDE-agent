@@ -6,10 +6,13 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau
 
 # ---- Model auto-discovery ----
 def _discover_model_class():
-    import model as _m
+    try:
+        import model as _m
+    except ModuleNotFoundError:
+        from agent import model as _m
     classes = [v for v in vars(_m).values()
                if isinstance(v, type) and issubclass(v, nn.Module)
-               and v.__module__ == 'model']
+               and v.__module__ == _m.__name__]
     ctor_patterns = [
         lambda c: c(),
         lambda c: c(modes=12, width=32, in_channels=10, out_channels=1),
@@ -33,7 +36,7 @@ def _discover_model_class():
             return obj
     if classes:
         return classes[0]
-    raise RuntimeError("No nn.Module class found in model.py")
+    raise RuntimeError("No nn.Module class found in agent/model.py")
 
 def _detect_model_interface(model, device, N=256, T_IN=10):
     x = torch.randn(2, N, T_IN, device=device)

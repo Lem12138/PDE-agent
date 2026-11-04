@@ -4,10 +4,15 @@ import time
 import requests
 from dotenv import load_dotenv
 
-# Load .env: workspace first, then project root
+# Load .env from the package directory, project workspace, or its parent.
 _file_dir = os.path.dirname(os.path.abspath(__file__))
-_root = os.path.abspath(os.path.join(_file_dir, ".."))
-for env_path in [os.path.join(_file_dir, ".env"), os.path.join(_root, ".env")]:
+_workspace = os.path.dirname(_file_dir)
+_project_root = os.path.dirname(_workspace)
+for env_path in [
+    os.path.join(_file_dir, ".env"),
+    os.path.join(_workspace, ".env"),
+    os.path.join(_project_root, ".env"),
+]:
     if os.path.exists(env_path):
         load_dotenv(env_path)
         break
@@ -19,19 +24,21 @@ class LLMClient:
     def __init__(self):
         self.api_key = os.environ.get("API_KEY", "")
         self.base_url = os.environ.get("API_BASE_URL", "")
-        self.default_model = os.environ.get("API_MODEL", "deepseek-v4-pro")
+        self.default_model = os.environ.get("API_MODEL", "deepseek-flash")
+        self.reasoning_effort = os.environ.get("API_REASONING_EFFORT", "high")
         self.timeout = int(os.environ.get("LLM_TIMEOUT", "600"))
 
     # ------------------------------------------------------------------
     # Per-agent overrides
     # ------------------------------------------------------------------
     def _agent_config(self, agent_name: str):
-        """Return (api_key, base_url, model) for a named agent, falling back to defaults."""
+        """Return API settings for a named agent, falling back to defaults."""
         prefix = agent_name.upper().replace("-", "_")
         key = os.environ.get(f"AGENT_{prefix}_API_KEY") or self.api_key
         url = os.environ.get(f"AGENT_{prefix}_BASE_URL") or self.base_url
         model = os.environ.get(f"AGENT_{prefix}_MODEL") or self.default_model
-        return key, url, model
+        effort = os.environ.get(f"AGENT_{prefix}_REASONING_EFFORT") or self.reasoning_effort
+        return key, url, model, effort
 
     # ------------------------------------------------------------------
     # Core call
@@ -40,7 +47,7 @@ class LLMClient:
         """
         Send a chat completion request. Returns reply text or "ERROR: ...".
         """
-        key, url, model = self._agent_config(agent_name)
+        key, url, model, effort = self._agent_config(agent_name)
 
         if not key or not url:
             return f"ERROR: API_KEY or API_BASE_URL not set for agent '{agent_name}'"
@@ -51,6 +58,7 @@ class LLMClient:
         }
         payload = {
             "model": model,
+            "reasoning_effort": effort,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
