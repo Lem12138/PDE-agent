@@ -80,7 +80,7 @@ class SpectralConv1d(nn.Module):
 
 
 class FNO1d(nn.Module):
-    def __init__(self, num_channels, modes=16, width=64, initial_step=10):
+    def __init__(self, num_channels, modes=12, width=32, initial_step=10):
         super().__init__()
 
         """

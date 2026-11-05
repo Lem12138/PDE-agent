@@ -26,7 +26,7 @@ class DeepONet1d(nn.Module):
         nx: Number of spatial grid points.
     """
 
-    def __init__(self, modes: int = 12, width: int = 64, in_channels: int = 10,
+    def __init__(self, modes: int = 12, width: int = 32, in_channels: int = 10,
                  out_channels: int = 1, n_layers: int = 4, n_basis: int = 128,
                  nx: int = 256, **kwargs):
         super().__init__()
