@@ -5,14 +5,32 @@ from torch.utils.data import Dataset, DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau
 
 # ---- Model auto-discovery ----
-def _discover_model_class():
+def _discover_model_class(prefer: str = ""):
+    """返回要训练的模型类。
+
+    prefer 非空时：必须精确匹配该类，找不到就报错——绝不退回猜测。
+    prefer 为空时：按原逻辑自动探测（仅用于独立调试，正式流程始终显式传类名）。
+    """
     try:
         import model as _m
     except ModuleNotFoundError:
         from agent import model as _m
+
     classes = [v for v in vars(_m).values()
                if isinstance(v, type) and issubclass(v, nn.Module)
                and v.__module__ == _m.__name__]
+
+    if prefer:
+        obj = getattr(_m, prefer, None)
+        if obj is None or not (isinstance(obj, type) and issubclass(obj, nn.Module)):
+            raise RuntimeError(
+                f"指定的模型类 {prefer!r} 不在 model.py 中；"
+                f"文件内可用类: {[c.__name__ for c in classes]}"
+            )
+        if obj.__module__ != _m.__name__:
+            raise RuntimeError(f"模型类 {prefer!r} 不是 model.py 内定义的类")
+        return obj
+
     ctor_patterns = [
         lambda c: c(),
         lambda c: c(modes=12, width=32, in_channels=10, out_channels=1),
@@ -109,9 +127,14 @@ def main():
     parser.add_argument('--train_data', required=True)
     parser.add_argument('--val_data', required=True)
     parser.add_argument('--save_dir', required=True)
-    parser.add_argument('--modes', type=int, default=12)
-    parser.add_argument('--width', type=int, default=32)
-    parser.add_argument('--n_layers', type=int, default=4)
+    # 超参默认交给 model.py 自己的构造函数默认值；
+    # 只有显式指定时才覆盖，这样 Dev 修改 model.py 里的默认值才会真正生效。
+    parser.add_argument('--modes', type=int, default=None,
+                        help='覆盖模型自带的 modes；不指定则用 model.py 的默认值')
+    parser.add_argument('--width', type=int, default=None,
+                        help='覆盖模型自带的 width；不指定则用 model.py 的默认值')
+    parser.add_argument('--n_layers', type=int, default=None,
+                        help='覆盖模型自带的 n_layers；不指定则用 model.py 的默认值')
     parser.add_argument('--phase1_lr', type=float, default=1e-4)
     parser.add_argument('--phase1_epochs', type=int, default=50)
     parser.add_argument('--phase2_lr', type=float, default=1e-5)
@@ -119,14 +142,30 @@ def main():
     parser.add_argument('--max_rollout', type=int, default=150)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--max_samples', type=int, default=0)
+    parser.add_argument('--model_class', type=str, default='',
+                        help='要训练的模型类名；为空则自动猜测（不推荐）')
+    parser.add_argument('--num_workers', type=int, default=4,
+                        help='DataLoader 工作进程数（无 /dev/shm 的环境设为 0）')
     parser.add_argument('--no_plateau', action='store_true',
                         help='Disable ReduceLROnPlateau + early stopping (for scout mode)')
     parser.add_argument('--checkpoint', type=str, default=None)
+    parser.add_argument('--seed', type=int, default=42,
+                        help='训练随机种子（权重初始化 / 数据打乱 / dropout）')
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     os.makedirs(args.save_dir, exist_ok=True)
     T_IN = 10
+
+    # ---- 随机种子：保证同配置可复现 ----
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    print(f'Seed: {args.seed}')
 
     # ---- Load data config (written by Captain from probe) ----
     data_cfg = _load_data_config(args.save_dir)
@@ -156,28 +195,35 @@ def main():
     val_data = (val_raw - mean) / std
 
     train_loader = DataLoader(PDEDataset(train_data), batch_size=args.batch_size,
-                              shuffle=True, num_workers=4, pin_memory=True)
+                              shuffle=True, num_workers=args.num_workers,
+                              pin_memory=False if args.num_workers == 0 else True,
+                              generator=torch.Generator().manual_seed(args.seed))
     val_loader = DataLoader(PDEDataset(val_data), batch_size=16, shuffle=False)
 
     # ---- Model ----
+    # 只把「显式给出」的超参传给构造函数，其余用模型自己的默认值
+    def _hp(**kw):
+        return {k: v for k, v in kw.items() if v is not None}
+
     N_spatial = train_data.shape[-1]
-    ModelClass = _discover_model_class()
+    ModelClass = _discover_model_class(args.model_class)
+    print(f'Model: {ModelClass.__name__}')
     if args.checkpoint:
         raw = torch.load(args.checkpoint, map_location='cpu', weights_only=False)
         state = raw.get('model_state_dict', raw.get('state_dict', raw))
-        model = ModelClass(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1)
+        model = ModelClass(**_hp(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1))
         model.load_state_dict(state, strict=False)
         model = model.to(device)
     else:
         # Try multiple constructor patterns (same as _discover_model_class)
         ctor_patterns = [
-            lambda: ModelClass(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1),
-            lambda: ModelClass(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1, n_layers=args.n_layers),
-            lambda: ModelClass(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1, n_layers=args.n_layers, n_scales=3),
-            lambda: ModelClass(num_channels=1, modes=args.modes, width=args.width, initial_step=T_IN),
-            lambda: ModelClass(in_channels=T_IN, out_channels=1, base_width=args.width, depth=args.n_layers),
-            lambda: ModelClass(in_channels=T_IN, out_channels=1, init_features=args.width),
-            lambda: ModelClass(in_channels=T_IN, width=args.width, n_layers=args.n_layers, n_basis=128, nx=N_spatial),
+            lambda: ModelClass(**_hp(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1)),
+            lambda: ModelClass(**_hp(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1, n_layers=args.n_layers)),
+            lambda: ModelClass(**_hp(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1, n_layers=args.n_layers, n_scales=3)),
+            lambda: ModelClass(**_hp(num_channels=1, modes=args.modes, width=args.width, initial_step=T_IN)),
+            lambda: ModelClass(**_hp(in_channels=T_IN, out_channels=1, base_width=args.width, depth=args.n_layers)),
+            lambda: ModelClass(**_hp(in_channels=T_IN, out_channels=1, init_features=args.width)),
+            lambda: ModelClass(**_hp(in_channels=T_IN, width=args.width, n_layers=args.n_layers, n_basis=128, nx=N_spatial)),
             lambda: ModelClass(),
         ]
         model = None
@@ -245,7 +291,7 @@ def main():
         scheduler.step()
 
         val_rel, s1, s2, s3 = validate(model, val_loader, device, T_IN=T_IN, forward_fn=forward)
-        print(f"[Phase1 Epoch {epoch:3d}] Val Rel-MSE: {val_rel:.6f} | S1:{s1:.6f} S2:{s2:.6f} S3:{s3:.6f}")
+        print(f"[Phase1 Epoch {epoch:3d}] Val Rel-MSE: {val_rel:.4e} | S1:{s1:.4e} S2:{s2:.4e} S3:{s3:.4e}")
         if not SCOUT_MODE:
             plateau_scheduler.step(val_rel)
         if val_rel < best_val * 0.995:  # meaningful improvement
@@ -307,7 +353,7 @@ def main():
         scheduler.step()
 
         val_rel, s1, s2, s3 = validate(model, val_loader, device, T_IN=T_IN, forward_fn=forward)
-        print(f"[Phase2 Epoch {epoch:3d}] roll={roll_steps:2d} | Val Rel-MSE: {val_rel:.6f} | S1:{s1:.6f} S2:{s2:.6f} S3:{s3:.6f}")
+        print(f"[Phase2 Epoch {epoch:3d}] roll={roll_steps:2d} | Val Rel-MSE: {val_rel:.4e} | S1:{s1:.4e} S2:{s2:.4e} S3:{s3:.4e}")
         if not SCOUT_MODE:
             plateau_scheduler2.step(val_rel)
         if val_rel < best_val * 0.995:

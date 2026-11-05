@@ -1,6 +1,12 @@
-```json
-{
-  "mode": "edit",
-  "edits": []
-}
-```
+本轮聚焦 **seg1 的高频截断误差**：FNO 的谱卷积本质是低通算子，早期陡前沿的高频能量被 modes 截断丢弃最多，因此只提高 `FNO1d` 的 `modes`（并小幅提升 `width` 维持 sorption 非线性项的逐点容量），不动 forward 接口与 I/O shape。
+
+**改动点**：`FNO1d.__init__` 默认参数 `modes=16 → 32`（2×，专注补偿 seg1 陡前沿的高频分量）、`width=64 → 96`（1.5×，保 Langmuir 型非线性在陡变处的表示能力）。`modes=32 ≪ N/2+1=513`，安全；`width` 只改变通道维，`forward` 里 `fc0`/谱卷积/`fc1` 会自动适配，padding 逻辑不变，故输出仍为 `(B, N, 1)`，空间分辨率 N 完全保持。
+
+（注：`modes`/`width` 改变会导致谱权重与全连接层 shape 变化，属容量提升的预期结果；若框架做 warm-start 需 strict=False 或用新初始化重训。）
+
+FILE: model.py
+<<<<<<< SEARCH
+    def __init__(self, num_channels, modes=16, width=64, initial_step=10):
+=======
+    def __init__(self, num_channels, modes=32, width=96, initial_step=10):
+>>>>>>> REPLACE

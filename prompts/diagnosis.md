@@ -73,29 +73,36 @@ rollout_divergence: seg1 的值多大？到 seg2 seg3 怎么递增的？
 
 ---
 
-## 📤 输出：严格 JSON
+## 📤 输出：自然语言
 
-```json
-{
-  "error_type": "code_syntax | shape_mismatch | oom | ckpt_mismatch | runtime_error | numerical_instability | rollout_divergence | underfit | convergence_failure",
-  "root_cause": {
-    "location": "哪个文件、哪个函数、哪一行",
-    "description": "一句话：根本原因是什么",
-    "evidence": "引用 traceback 或日志中的关键行"
-  },
-  "upstream_check": "如果检查上游依赖，是否发现异常？无则写 null",
-  "fix": {
-    "target": "改哪个文件哪一行",
-    "old_code": "当前代码片段（2-5行）",
-    "new_code": "修复后代码片段（2-5行）",
-    "reason": "为什么这样修"
-  },
-  "severity": "trivial | minor | major | fatal",
-  "needs_proposal": false
-}
-```
+**不要输出 JSON。** 用中文写清楚以下几点：
 
-`needs_proposal: true` 仅当问题不是代码 bug 而是架构/策略层面的根因（如 "当前 FNO 容量从根本上无法承载此 PDE 的多尺度特征"），此时内循环修复无效，需要 Proposal 重新出方案。
+1. **错误类型**：语法 / shape 不匹配 / OOM / ckpt 不匹配 / 运行时错误 / 数值不稳定 / 欠拟合
+2. **根因定位**：哪个文件、哪个函数、哪一行，引用 traceback 里的关键行
+3. **为什么**：一句话说清根本原因，不要只说现象
+4. **怎么修**：给出修复后的代码片段（原样贴，带缩进），说明改哪几行
+5. **是否该放弃本次修改**：如果根因在架构层面（比如「当前 FNO 容量根本撑不住这个 PDE 的多尺度特征」），
+   明确写一句 **「需要重新提方案」**，Captain 会结束内循环、回到 Proposal。
+
+### 示例
+
+> 错误类型：shape_mismatch
+>
+> 根因：`MGScaleBlock.__init__` 里把 `n_scales` 写死成 3，但 `MGNO1d` 传入的是 2，
+> 导致 down 分支少建了一层卷积。traceback 指向 `model.py:88` 的 `self.down[i]`。
+>
+> 修法：把写死的 3 改成 `n_scales`：
+>
+> ```python
+> for i in range(n_scales):
+>     self.down.append(...)
+> ```
+>
+> 这是普通代码 bug，内循环修复即可。
+
+### 什么时候写「需要重新提方案」
+
+只有问题时架构/策略层面的、改几行代码解决不了的时候。常见的代码 bug 一律不要这么说。
 
 ---
 

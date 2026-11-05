@@ -1,0 +1,5 @@
+{
+  "test_data": "/home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/test.h5",
+  "skipped": "no_evolved_model",
+  "note": "所有轮次均未产生新最优，evolved 与 baseline 为同一模型"
+}

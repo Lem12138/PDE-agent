@@ -1,6 +1,7 @@
 # graph_memory.py — 有向图记忆系统，追踪操作间的数据依赖，支持错误溯源和子图裁剪
 import json
 import os
+import re
 from typing import Dict, List, Optional, Set
 
 # 边关系类型
@@ -146,6 +147,129 @@ class GraphMemory:
         for e in relevant_edges:
             lines.append(f"- `{e['source']}` --[{e['relation']}]--> `{e['target']}`")
         return "\n".join(lines)
+
+    def lineage_path(self, node_id: str, max_depth: int = 32) -> List[str]:
+        """沿上游一路回溯到根，返回正序路径（最上游在前）。"""
+        path, cur, seen = [], node_id, set()
+        while cur and cur not in seen and len(path) < max_depth:
+            seen.add(cur)
+            path.append(cur)
+            parents = self.upstream(cur)
+            cur = parents[0] if parents else None
+        path.reverse()
+        return path
+
+    # ============================================================
+    # 演化轨迹压缩 — 每轮一行，保住跨轮记忆
+    # ============================================================
+    def _rounds(self) -> Dict[int, Dict[str, dict]]:
+        """把节点按轮次聚合：{轮次: {后缀: 节点}}。"""
+        rounds: Dict[int, Dict[str, dict]] = {}
+        for nid, info in self.nodes.items():
+            m = re.match(r"^R(\d+)_(\w+)$", nid)
+            if m:
+                rounds.setdefault(int(m.group(1)), {})[m.group(2)] = info
+        return rounds
+
+    def _one_line(self, rnd: int, parts: Dict[str, dict]) -> str:
+        """把一轮的所有信息压成一行。"""
+        hyp = parts.get("hypothesis", {})
+        title = (hyp.get("content") or "").strip().splitlines()
+        title = (title[0] if title else "")[:38]
+
+        seg = []
+        edit = parts.get("edit", {})
+        if edit:
+            seg.append(f"改 {edit.get('metadata', {}).get('applied', '?')} 处")
+
+        jud = parts.get("judgement", {})
+        meta = jud.get("metadata", {}) or {}
+        verdict = meta.get("verdict") or jud.get("content", "") or ""
+        ov = meta.get("overall", {}) or {}
+        if ov.get("baseline") is not None and ov.get("current") is not None:
+            seg.append(f"{ov['baseline']:.4g}→{ov['current']:.4g}")
+        segs = meta.get("segments", {}) or {}
+        seg_txt = " ".join(
+            f"{k}{v['r']*100:+.1f}%" for k, v in segs.items()
+            if isinstance(v, dict) and v.get("r") is not None
+        )
+        if seg_txt:
+            seg.append(seg_txt)
+
+        outcome = parts.get("outcome", {})
+        action = (outcome.get("content") or "").strip()
+        if not action and verdict:
+            action = verdict
+        if action:
+            seg.append(action)
+
+        head = f"R{rnd}"
+        if title:
+            head += f": {title}"
+        return head + (" | " + " | ".join(seg) if seg else "")
+
+    def format_trajectory(self) -> str:
+        """全量轮次摘要：每轮一行，永远注入，保证跨轮记忆不丢。"""
+        rounds = self._rounds()
+        if not rounds:
+            return "尚无演化记录。"
+        lines = ["### 演化轨迹（每轮一行，全量保留）"]
+        for rnd in sorted(rounds):
+            lines.append("- " + self._one_line(rnd, rounds[rnd]))
+        return "\n".join(lines)
+
+    def relevant_rounds(self, task_text: str, recent: int = 2) -> List[int]:
+        """按任务文本里的关键词挑出相关轮次；再并上最近几轮。
+
+        只看「方案描述 / 判定理由 / 处置结果」，不看原始指标 ——
+        否则每轮都含 seg1/seg2 字段，等于全部命中。
+        """
+        rounds = self._rounds()
+        if not rounds:
+            return []
+        keys = set(re.findall(r"seg[123]|fno|mgno|unet|deeponet", (task_text or "").lower()))
+        picked = set(sorted(rounds)[-recent:])
+        if not keys:
+            return sorted(picked)
+        for rnd, parts in rounds.items():
+            blob = " ".join(
+                str(parts.get(k, {}).get("content", ""))
+                for k in ("hypothesis", "outcome")
+            ).lower()
+            reasons = (parts.get("judgement", {}).get("metadata", {}) or {}).get("reasons") or []
+            blob += " " + " ".join(map(str, reasons)).lower()
+            if any(k in blob for k in keys):
+                picked.add(rnd)
+        return sorted(picked)
+
+    def format_for_task(self, task_text: str, recent: int = 2) -> str:
+        """两层注入：全量轨迹（压缩） + 相关轮次细节（展开）。"""
+        out = [self.format_trajectory()]
+        rnds = self.relevant_rounds(task_text, recent=recent)
+        detail = []
+        for rnd in rnds:
+            for suffix in ("hypothesis", "edit", "eval", "judgement", "outcome"):
+                nid = f"R{rnd}_{suffix}"
+                info = self.nodes.get(nid)
+                if not info:
+                    continue
+                meta = info.get("metadata") or {}
+                if suffix == "edit":
+                    snippet = f"改 {meta.get('applied', '?')} 处"
+                elif suffix == "eval":
+                    snippet = f"overall={meta.get('overall')}"
+                elif suffix == "judgement":
+                    snippet = "；".join(map(str, meta.get("reasons") or []))[:160]
+                else:
+                    snippet = ""
+                content = (info.get("content") or "")[:120]
+                line = f"- [{info['type']}] R{rnd} {suffix}: {content}"
+                if snippet:
+                    line += f"（{snippet}）"
+                detail.append(line)
+        if detail:
+            out.append("\n### 相关轮次细节（按当前任务选取）\n" + "\n".join(detail))
+        return "\n".join(out)
 
     # ============================================================
     # 持久化

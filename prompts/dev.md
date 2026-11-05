@@ -11,7 +11,7 @@
 ## 🔴 绝对红线
 
 1. **只改 model.py**。不要生成或修改 train.py！
-2. **微创修改 > 重写**。Phase 1+ 时严禁重写整个文件！只改被假说精确指定的那几行。
+2. **微创修改 > 重写**。Phase 1+ 时严禁重写整个文件！只改被假说精确指定的那几行，用 SEARCH/REPLACE 块表达。
 3. **I/O shape 不可变**。model.forward 输入 `(B, N, T_in)` → 输出 `(B, N, 1)`。**空间分辨率 N 必须和输入完全一致，不能减半、不能改变。**
 4. **checkpoint 兼容**。如果加载 ckpt，必须先用 state_dict 反推参数再实例化模型，不能硬编码。
 5. **不硬编码路径**。所有文件路径从 args 获取。
@@ -20,7 +20,7 @@
 
 ## 🔴 I/O Shape 强制检查清单（每次编辑后必查）
 
-在输出 edit 之前，在心里过一遍这个清单：
+在输出修改块之前，在心里过一遍这个清单：
 
 1. **空间维度 N 是否保持不变？** Conv1d(kernel>1, stride>1)、MaxPool、AvgPool 都会改变 N。如果你加了这些层，必须加 padding 或上采样来恢复 N。
 2. **输入通道 in_channels 是否匹配数据？** 数据输入是 `(B, N, T_in)`，permute 后通道维是 T_in（通常=10）。
@@ -48,12 +48,13 @@
 
 ## 📤 输出格式
 
-### Phase 0 — 生成模式
-只输出 model.py。不要输出 train.py！
+**不要输出 JSON。** 用自然语言说明 + 原样代码块。
 
-```json
-{"mode": "generate", "files": ["model.py"]}
-```
+### Phase 0 — 生成模式
+用几句话说明你的设计思路，然后给出**完整的 model.py**：
+
+````
+我采用 FNO 架构，因为数据是平滑场……
 
 ```python
 # model.py
@@ -61,23 +62,32 @@ import torch
 import torch.nn as nn
 ...
 ```
+````
 
-### Phase 1+ — 编辑模式
-只编辑 model.py。
-```json
-{
-  "mode": "edit",
-  "edits": [
-    {
-      "file": "model.py",
-      "reason": "...",
-      "changes": [
-        {"old": "...", "new": "..."}
-      ]
-    }
-  ]
-}
-```
+### Phase 1+ — 修改模式
+先写清楚**改什么、为什么改**（自然语言），然后用 SEARCH/REPLACE 块给出精确修改：
+
+````
+本轮把 modes 从 12 提到 24，width 保持 32 不变。
+理由是数据频谱集中在低频，提升 modes 能多保留两个倍频分量。
+
+FILE: model.py
+<<<<<<< SEARCH
+    def __init__(self, modes: int = 12, width: int = 32, in_channels: int = 10,
+=======
+    def __init__(self, modes: int = 24, width: int = 32, in_channels: int = 10,
+>>>>>>> REPLACE
+````
+
+规则：
+
+- **SEARCH 里的内容必须从当前 model.py 原样抄**（缩进、标点都要一致）
+- SEARCH 必须**唯一**——如果这段代码在文件里出现多次，加几行上下文让它唯一
+- 一次改多处就写多个块，每个块独立
+- `FILE: model.py` 可以省略（默认就是 model.py）
+- 块外面可以随意写解释，程序只认块里的内容
+
+修改后文件哈希必须变化，否则本轮判无效、不启动训练。
 
 ---
 

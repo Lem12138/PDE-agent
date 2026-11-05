@@ -77,15 +77,41 @@ class ResourcePool:
     # ----------------------------------------------------------
     # LLM 格式化
     # ----------------------------------------------------------
-    def format_for_llm(self) -> str:
-        """格式化为 Markdown，注入 LLM prompt。"""
-        if not self._data:
-            return "资源池为空。"
-        lines = ["### 资源池 (Resource Pool)\n"]
-        lines.append("```json")
-        lines.append(json.dumps(self._data, ensure_ascii=False, indent=2, default=str))
-        lines.append("```")
-        return "\n".join(lines)
+    # 注入 LLM 时只展示这些「当前状态」字段。
+    # 历史与因果关系由图记忆负责，池里其余键仍可 get()，只是不塞进 prompt。
+    CURATED_KEYS = (
+        ("best_model", "当前最优模型"),
+        ("best_metrics", "当前最优指标"),
+        ("best_checkpoint", "当前最优 checkpoint"),
+        ("data_split_manifest", "数据切分"),
+        ("data_probe", "数据探测"),
+    )
+
+    def format_for_llm(self, max_chars: int = 320) -> str:
+        """只输出决策相关的当前状态，长值截断。
+
+        旧版把整个池 json.dumps 塞进每个 prompt，包括完整 traceback 和
+        嵌套统计，既撑上下文也容易让 LLM 抓着旧信息不放。
+        """
+        lines = ["### 当前状态（资源池·精选）"]
+        shown = False
+        for key, label in self.CURATED_KEYS:
+            v = self.get(key)
+            if v is None:
+                continue
+            text = (json.dumps(v, ensure_ascii=False, default=str)
+                    if isinstance(v, (dict, list)) else str(v))
+            if len(text) > max_chars:
+                text = text[:max_chars] + " …（已截断）"
+            lines.append(f"- **{label}**: {text}")
+            shown = True
+
+        err = self.get("last_error")
+        if err:
+            lines.append(f"- **最近错误**: {str(err)[-max_chars:]}")
+            shown = True
+
+        return "\n".join(lines) if shown else "（暂无状态）"
 
     # ----------------------------------------------------------
     # 持久化

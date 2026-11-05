@@ -1,51 +1,30 @@
-{
-  "analysis": "seg1 误差最高 (9e-06)，根源在于激波形成初期存在陡峭梯度，包含被 FNO 模态截断滤除的高频成分，导致锋面钝化；单步训练也未显式约束解场遵守 Burgers 方程，微小残余在初期即埋下偏差。",
-  "hypotheses": [
-    {
-      "id": "H1",
-      "priority": "P0",
-      "title": "扩大 FNO 的傅里叶模态数与通道宽度，增强初期激波高频表征",
-      "physical_basis": "Burgers 方程在低粘性 (ν=0.001) 下解的激波前沿含显著高频成分，FNO 的傅里叶层对空间维度进行模态截断 (modes) 等价于低通滤波，过小的 modes 会抹平锋面梯度，直接导致 seg1 的预测偏差。增加 modes 可保留更多高频，提升激波锐度；同时扩展 width 提升非线性容量，使网络更精确地映射多尺度结构。",
-      "expected_effect": "seg1 预计降至 5-6e-06，seg2 随之改善到 5e-06 左右，seg3 保持 ≈0。整体误差降至 5-6e-06。训练时间因矩阵尺寸增大而增加约 40%，仍在 12h 内。",
-      "target": {
-        "file": "model.py",
-        "layer": "FNO 类的构造函数或配置文件中的参数定义",
-        "change": "将 modes 从 12 提升到 20（或 24），width 从 20 提升到 32（保持两者比值合理）。若原为列表 modes=[12,12]，改为 [20,20]；width 参数直接调整为 32。",
-        "pseudo_code": "# 在 model.py 中\nclass FNO(nn.Module):\n    def __init__(self, modes1=20, modes2=20, width=32, ...):\n        ..."
-      },
-      "risk": "低 — 仅调整超参，不改变计算图结构；显存和训练时间增加可控，无 NaN 风险。",
-      "validation": "对比 baseline 的 seg1 (9e-06)，若降至 6e-06 以下即证明高频表达能力提升有效。"
-    },
-    {
-      "id": "H2",
-      "priority": "P0",
-      "title": "加入 Burgers 方程物理残差正则化，强制解场满足局部 PDE 约束",
-      "physical_basis": "任何真实解必须满足 ∂u/∂t + u·∂u/∂x = ν·∂²u/∂x²。纯 MSE 损失未利用这一强约束。在训练时对预测序列施加 PDE 残差的 L2 惩罚，可引导模型在激波区域遵守物理定律，即使梯度稀疏也能传递有效信号，从而降低 seg1 的初始偏差。",
-      "expected_effect": "seg1 可降至 4-5e-06，seg2 同步改善，整体误差进一步降低。训练时间增加约 25%，梯度稳定。",
-      "target": {
-        "file": "train.py",
-        "layer": "损失函数部分 (如 train_epoch 内)",
-        "change": "新增一个 compute_burgers_residual 函数 (利用中心差分)，并将 loss = mse + λ·residual，λ 初始 0.01。",
-        "pseudo_code": "def compute_burgers_residual(pred, nu=0.001):\n    # pred: [B,T,X]\n    dt = 1.0/(T-1)\n    dx = 1.0/X\n    u_t = (pred[:,2:] - pred[:,:-2])/(2*dt)\n    u = pred[:,1:-1,1:-1]\n    u_x = (pred[:,1:-1,2:] - pred[:,1:-1,:-2])/(2*dx)\n    u_xx = (pred[:,1:-1,2:] - 2*u + pred[:,1:-1,:-2])/(dx**2)\n    res = u_t[:,:,1:-1] + u*u_x - nu*u_xx\n    return res.pow(2).mean()\nloss = mse_loss + 0.01 * compute_burgers_residual(pred)"
-      },
-      "risk": "低 — 物理残差项可导且稳定；λ 过大可能引入僵化，但 0.01 为安全起点。",
-      "validation": "观察 seg1 是否降至 5e-06 以下，同时物理残差项是否随训练衰减。"
-    },
-    {
-      "id": "H3",
-      "priority": "P1",
-      "title": "训练时注入微量噪声以模拟自回归扰动，提升对初始偏差的鲁棒性",
-      "physical_basis": "单步训练模型无法暴露于自身预测误差造成的输入扰动。之前的多步 rollout 训练因长梯度路径导致退化。改为向输入场添加极小量高斯噪声 (σ~1e-3)，使模型学会从略微失真的初始条件中恢复真实解，等效于实施了一次近似 shadowing，可降低 seg1 传播至 seg2 的误差累积，且不增加反向传播步数，避免了不稳定。",
-      "expected_effect": "seg1 有望降至 6-7e-06，seg2 保持或改善；训练稳定性高，不引入 NaN。",
-      "target": {
-        "file": "train.py",
-        "layer": "数据加载或训练循环的前传入口",
-        "change": "在每个 batch 的输入 p_x 上添加噪声 noise ~ N(0, σ²)，σ 从 1e-3 衰减到 1e-4。不修改真值标签。",
-        "pseudo_code": "noise_scale = 1e-3 * (1 - epoch/max_epochs) + 1e-4\nnoisy_input = p_x + torch.randn_like(p_x) * noise_scale\npred = model(noisy_input)\nloss = F.mse_loss(pred, p_y)"
-      },
-      "risk": "中 — 过大的噪声可能破坏原本干净的低频信号，导致 seg1 反而恶化；需小心调度 σ 的衰减。",
-      "validation": "若 seg1 降低且 seg2 不反弹，则视为有效；若 seg1 上升则放弃并回退。"
-    }
-  ],
-  "fallback": "若以上都无效，考虑更换为非周期 FNO 变体（如 TFNO 或添加反射填充）以消除边界 Gibbs 效应，或切换到 MGNO 利用多尺度细化能力，但需重新训练且开销较大。"
-}
+## 诊断
+
+先看清实际指标，别被“seg3 为短板”的直觉误导。当前 fno 的三段是 seg1=6.56e-6、seg2=4.68e-6、seg3=0.0，**全部落在 ~1e-6 量级**，这已经不是“哪段发散”的问题，而是三段基本都贴到了这套 1D diffusion-sorption 数据的可分辨误差底。严格按数值排序，**seg1（早期/初始过渡段）是名义上的短板**（6.56e-6 > seg2 的 4.68e-6），seg3=0.0 大概率是未评测/无样本而非真误差为零。
+
+seg1 略差有清晰的物理根因：diffusion-sorption 的解是一个**随时间的浓度前缘（contaminant front）**，初始过渡阶段前缘最陡、梯度最大。FNO 的 Fourier 层是**频带受限算子**（只保留前 modes 个低波数），对这条陡前沿做谱截断会把它抹平/产生轻微振铃，误差就集中在这一段。换句话说，瓶颈不是容量不够，而是**谱截断对最陡的前沿结构表达能力不足**。
+
+## 本轮做什么（只给一个方案）
+
+在 FNO 的每个 Fourier 层里，给谱卷积分支**并联一条 depthwise 局部卷积旁路**，用局部 3–5 点 stencil 补上谱截断丢掉的高波数前沿成分，再相加后过激活。这条旁路是**低秩、极廉价**的（分组卷积，参数量 ≈ width×k），比“翻倍 modes”便宜得多，也不改 I/O。
+
+## 改哪里
+
+- 文件：`model.py`
+- 位置：FNO 的 Fourier block（即含 `SpectralConv1d` + 激活 的那一层，类名以代码为准，如 `FNO1d` 内的 `SpectralBlock`/`FourierLayer`）
+- 具体改动：
+  - 在该层 `__init__` 新增一条：`self.local_conv = nn.Conv1d(width, width, kernel_size=5, padding=2, groups=width)`（深度可分离，输出长度不变）。
+  - 在前向中，把原来的 `x = spectral(x) + W(x)`（或等价 skip）改为 `x = spectral(x) + W(x) + self.local_conv(x)`，再过 GELU/激活。
+- 不新增/不修改任何输入输出 reshape，`model.forward(x)` 的 shape 契约完全不变。
+
+## 为什么（物理/数学依据）
+
+- 数学：`SpectralConv` 保留前 M 个模式的本质是**带限算子**，等价于一个理想低通；前缘对应的能量分布在截断波数之外，被低通直接丢掉。depthwise 卷积是一个**紧支撑的局部差分算子**，其频响覆盖全频带但能量集中在高波数——两者相加 ≈ “低通 + 高波数补丁”，在**不扩 FFT 规模**的前提下扩展了有效频谱覆盖，正对症谱截断抹平前沿的问题。
+- 物理：diffusion-sorption 的陡峭浓度前沿是局部陡变，天然由局部 stencil 表达；seg1 误差最大正是初始过渡段前沿最陡处，改这一层收益应集中在 seg1。
+
+## 怎么验证
+
+- 主看 **seg1**：预期 seg1 相对自身误差下降（前沿被补回来后误差集中点被消掉），overall 随之下降；seg2 应基本持平（中段前沿已较缓）。
+- 注意噪声底：R1 已标记 sigma=0.05 为假定值、未标定，且当前误差在 1e-6 量级，**任何 <10% 的变化都可能是噪声**。判定标准定为：seg1 相对下降 ≥10% 才算真改善。
+- 回退条件：若 seg1 不降反升，或 seg2 掉了 >10%，说明局部旁路引入了高频振铃、过度拟合前沿，需回退（可先试 kernel=3 或给 local_conv 输出乘一个 <1 的缩放）。
+- 若三段都在噪声内无变化，则说明该瓶颈不是谱截断而是测量噪声底——这本身也是有效结论，供 Captain 判断是否停止在该数据上继续榨精度。

@@ -1,0 +1,2491 @@
+============================================================
+      Agent 科研实验日志 — Task 1
+============================================================
+
+# 一、思考链路 (Trace)
+
+记录了 Agent 每一步操作的原始记录：
+
+## [2026-11-04 13:48:59] action
+- Phase 0.0: 数据准备
+
+## [2026-11-04 13:48:59] action
+- 检测到未划分数据集：未划分（格式=group, 样本数=10000）
+```
+/home/apde/pde_project/new_dataset/PDEBench/1D/diffusion-sorption/1D_diff-sorp_NA_NA.h5
+```
+
+## [2026-11-04 13:48:59] probe
+- 源文件: /home/apde/pde_project/new_dataset/PDEBench/1D/diffusion-sorption/1D_diff-sorp_NA_NA.h5 (4.22 GB)
+
+## [2026-11-04 13:49:02] probe
+- 源 sha256: 8e48ab3efd39ab63...
+
+## [2026-11-04 13:49:02] probe
+- 缓存命中，复用已有切分: /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA
+
+## [2026-11-04 13:49:02] action
+- 切分完成（复用缓存）→ /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA
+
+## [2026-11-04 13:49:02] action
+-   train=8000 val=1000 test=1000 种子=42 比例=[0.8, 0.1, 0.1]
+
+## [2026-11-04 13:49:02] action
+- Task 1 启动
+```
+train=/home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/train.h5, val=/home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/val.h5
+```
+
+## [2026-11-04 13:49:02] action
+- Phase 0.1: 数据探测
+
+## [2026-11-04 13:49:02] probe
+- 数据: train.h5
+```
+shape=[8000, 101, 1024], freq=smooth_dominated, bc=other
+```
+
+## [2026-11-04 13:49:02] probe
+- 数据: val.h5
+```
+shape=[1000, 101, 1024], freq=smooth_dominated, bc=other
+```
+
+## [2026-11-04 13:49:02] action
+- 数据配置: h5_key=tensor, subsample=4, n_spatial=256, t_in=10, extra_files=0, conditions=[]
+
+## [2026-11-04 13:49:02] action
+- Phase 0.2: Captain LLM 推理匹配模型
+
+## [2026-11-04 13:49:02] subagent_call
+- 调用 captain
+```
+### 数据探测报告
+## 自动探测报告
+
+### 数据探测
+
+**train.h5**
+- 维度: [8000, 101, 1024] (N_samples × T_steps × X_space), dtype=float32
+- 统计: min=0.0002, max=0.9996, mean=0.2612, std=0.2695
+- 频谱: 高频能量占比=0.0004, 判定=smooth
+```
+
+## [2026-11-04 13:49:12] llm_reasoning
+- 候选模型: ['fno', 'mgno']
+
+## [2026-11-04 13:49:12] action
+- Scout: 获取代码 — fno
+
+## [2026-11-04 13:49:12] action
+- 从模板复制: fno.py → model.py (model=fno)
+
+## [2026-11-04 13:49:13] action
+- 实例化检查: PASS
+```
+OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+```
+
+## [2026-11-04 13:49:13] action
+- Scout: 训练 — fno
+
+## [2026-11-04 13:49:13] training
+- 开始训练: scout_fno
+```
+Phase1=25eps + Phase2=20eps | cmd=/home/apde/miniconda3/bin/python3 /home/apde/pde_project/interim report/agent/train.py --train_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/train.h5 --val_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/val.h5 --save_dir /home/apde/pde_project/interim report/output/runs/scout_fno --model_class FNO1d --seed 42 --max_samples 500 --phase1_epochs 25 --phase2_epochs 20 --batch_size 8 --no_plateau --num_workers 4
+```
+
+## [2026-11-04 13:49:18] training
+- === Phase 1: Teacher Forcing ===
+
+## [2026-11-04 13:49:22] training
+- [Phase1 Epoch   1] Val Rel-MSE: 9.9007e-01 | S1:9.7359e-01 S2:1.0077e+00 S3:0.0000e+00
+
+## [2026-11-04 13:49:26] training
+- [Phase1 Epoch   2] Val Rel-MSE: 7.8595e-01 | S1:5.8024e-01 S2:1.0057e+00 S3:0.0000e+00
+
+## [2026-11-04 13:49:30] training
+- [Phase1 Epoch   3] Val Rel-MSE: 2.6882e-01 | S1:2.0777e-01 S2:3.3403e-01 S3:0.0000e+00
+
+## [2026-11-04 13:49:34] training
+- [Phase1 Epoch   4] Val Rel-MSE: 2.0436e-01 | S1:1.6468e-01 S2:2.4675e-01 S3:0.0000e+00
+
+## [2026-11-04 13:49:38] training
+- [Phase1 Epoch   5] Val Rel-MSE: 8.0510e-02 | S1:8.7927e-02 S2:7.2587e-02 S3:0.0000e+00
+
+## [2026-11-04 13:49:42] training
+- [Phase1 Epoch   6] Val Rel-MSE: 3.8141e-02 | S1:4.8153e-02 S2:2.7447e-02 S3:0.0000e+00
+
+## [2026-11-04 13:49:46] training
+- [Phase1 Epoch   7] Val Rel-MSE: 2.9594e-02 | S1:3.1063e-02 S2:2.8025e-02 S3:0.0000e+00
+
+## [2026-11-04 13:49:50] training
+- [Phase1 Epoch   8] Val Rel-MSE: 2.3594e-02 | S1:2.5637e-02 S2:2.1412e-02 S3:0.0000e+00
+
+## [2026-11-04 13:49:54] training
+- [Phase1 Epoch   9] Val Rel-MSE: 1.9025e-02 | S1:1.8988e-02 S2:1.9065e-02 S3:0.0000e+00
+
+## [2026-11-04 13:49:58] training
+- [Phase1 Epoch  10] Val Rel-MSE: 1.9191e-02 | S1:2.0195e-02 S2:1.8118e-02 S3:0.0000e+00
+
+## [2026-11-04 13:50:02] training
+- [Phase1 Epoch  11] Val Rel-MSE: 1.4807e-02 | S1:1.6152e-02 S2:1.3370e-02 S3:0.0000e+00
+
+## [2026-11-04 13:50:06] training
+- [Phase1 Epoch  12] Val Rel-MSE: 1.3097e-02 | S1:1.3323e-02 S2:1.2855e-02 S3:0.0000e+00
+
+## [2026-11-04 13:50:10] training
+- [Phase1 Epoch  13] Val Rel-MSE: 1.1341e-02 | S1:1.2772e-02 S2:9.8132e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:14] training
+- [Phase1 Epoch  14] Val Rel-MSE: 9.8725e-03 | S1:1.1644e-02 S2:7.9797e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:17] training
+- [Phase1 Epoch  15] Val Rel-MSE: 8.6448e-03 | S1:1.0073e-02 S2:7.1191e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:21] training
+- [Phase1 Epoch  16] Val Rel-MSE: 9.7094e-03 | S1:1.0774e-02 S2:8.5727e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:25] training
+- [Phase1 Epoch  17] Val Rel-MSE: 7.0394e-03 | S1:8.8569e-03 S2:5.0980e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:29] training
+- [Phase1 Epoch  18] Val Rel-MSE: 6.8588e-03 | S1:8.2764e-03 S2:5.3445e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:33] training
+- [Phase1 Epoch  19] Val Rel-MSE: 5.3622e-03 | S1:6.8229e-03 S2:3.8019e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:37] training
+- [Phase1 Epoch  20] Val Rel-MSE: 6.1476e-03 | S1:7.6535e-03 S2:4.5390e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:41] training
+- [Phase1 Epoch  21] Val Rel-MSE: 5.2837e-03 | S1:6.9135e-03 S2:3.5428e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:45] training
+- [Phase1 Epoch  22] Val Rel-MSE: 5.2627e-03 | S1:6.9150e-03 S2:3.4977e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:49] training
+- [Phase1 Epoch  23] Val Rel-MSE: 5.2735e-03 | S1:6.9415e-03 S2:3.4919e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:53] training
+- [Phase1 Epoch  24] Val Rel-MSE: 4.9913e-03 | S1:6.6100e-03 S2:3.2622e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:57] training
+- [Phase1 Epoch  25] Val Rel-MSE: 5.0985e-03 | S1:6.7289e-03 S2:3.3569e-03 S3:0.0000e+00
+
+## [2026-11-04 13:50:57] training
+- === Phase 2: Progressive Rollout ===
+
+## [2026-11-04 13:51:01] training
+- [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 5.9189e-03 | S1:7.0382e-03 S2:4.7233e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:05] training
+- [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 4.0666e-03 | S1:5.4255e-03 S2:2.6150e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:09] training
+- [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 4.1999e-03 | S1:5.8094e-03 S2:2.4807e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:13] training
+- [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 4.1116e-03 | S1:5.7921e-03 S2:2.3166e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:16] training
+- [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 4.0084e-03 | S1:5.7923e-03 S2:2.1029e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:20] training
+- [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 4.1779e-03 | S1:6.0466e-03 S2:2.1819e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:24] training
+- [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 3.2764e-03 | S1:4.8385e-03 S2:1.6079e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:28] training
+- [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 3.2033e-03 | S1:4.4753e-03 S2:1.8445e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:32] training
+- [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 2.7823e-03 | S1:4.2960e-03 S2:1.1654e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:36] training
+- [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 3.6948e-03 | S1:4.9741e-03 S2:2.3283e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:40] training
+- [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 3.4471e-03 | S1:4.9598e-03 S2:1.8313e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:44] training
+- [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 3.2008e-03 | S1:4.8353e-03 S2:1.4549e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:48] training
+- [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 2.6052e-03 | S1:4.2414e-03 S2:8.5749e-04 S3:0.0000e+00
+
+## [2026-11-04 13:51:53] training
+- [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 2.9753e-03 | S1:4.6262e-03 S2:1.2119e-03 S3:0.0000e+00
+
+## [2026-11-04 13:51:57] training
+- [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 3.0344e-03 | S1:4.6685e-03 S2:1.2890e-03 S3:0.0000e+00
+
+## [2026-11-04 13:52:02] training
+- [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 3.0118e-03 | S1:4.6552e-03 S2:1.2563e-03 S3:0.0000e+00
+
+## [2026-11-04 13:52:07] training
+- [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 2.8904e-03 | S1:4.5410e-03 S2:1.1271e-03 S3:0.0000e+00
+
+## [2026-11-04 13:52:12] training
+- [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 2.9751e-03 | S1:4.6142e-03 S2:1.2241e-03 S3:0.0000e+00
+
+## [2026-11-04 13:52:17] training
+- [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 2.9715e-03 | S1:4.6141e-03 S2:1.2169e-03 S3:0.0000e+00
+
+## [2026-11-04 13:52:23] training
+- [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 2.9622e-03 | S1:4.6056e-03 S2:1.2068e-03 S3:0.0000e+00
+
+## [2026-11-04 13:52:23] training
+- Training completed.
+
+## [2026-11-04 13:52:24] training
+- 训练完成 (191s)
+```
+output=/home/apde/pde_project/interim report/output/runs/scout_fno
+```
+
+## [2026-11-04 13:52:24] eval
+- Scout fno: overall=0.0030 seg1=0.0046 seg2=0.0012 seg3=0.0000
+
+## [2026-11-04 13:52:24] action
+- Scout: 获取代码 — mgno
+
+## [2026-11-04 13:52:24] action
+- 从模板复制: mgno.py → model.py (model=mgno)
+
+## [2026-11-04 13:52:25] action
+- 实例化检查: PASS
+```
+OK: MGNO1d input=[2, 256, 10] output=[2, 256]
+```
+
+## [2026-11-04 13:52:25] action
+- Scout: 训练 — mgno
+
+## [2026-11-04 13:52:25] training
+- 开始训练: scout_mgno
+```
+Phase1=25eps + Phase2=20eps | cmd=/home/apde/miniconda3/bin/python3 /home/apde/pde_project/interim report/agent/train.py --train_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/train.h5 --val_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/val.h5 --save_dir /home/apde/pde_project/interim report/output/runs/scout_mgno --model_class MGNO1d --seed 42 --max_samples 500 --phase1_epochs 25 --phase2_epochs 20 --batch_size 8 --no_plateau --num_workers 4
+```
+
+## [2026-11-04 13:52:30] training
+- === Phase 1: Teacher Forcing ===
+
+## [2026-11-04 13:52:35] training
+- [Phase1 Epoch   1] Val Rel-MSE: 3.6022e-01 | S1:3.4607e-01 S2:3.7532e-01 S3:0.0000e+00
+
+## [2026-11-04 13:52:40] training
+- [Phase1 Epoch   2] Val Rel-MSE: 4.2446e-02 | S1:5.7000e-02 S2:2.6899e-02 S3:0.0000e+00
+
+## [2026-11-04 13:52:44] training
+- [Phase1 Epoch   3] Val Rel-MSE: 2.4213e-02 | S1:2.8007e-02 S2:2.0160e-02 S3:0.0000e+00
+
+## [2026-11-04 13:52:49] training
+- [Phase1 Epoch   4] Val Rel-MSE: 1.7898e-02 | S1:1.7441e-02 S2:1.8387e-02 S3:0.0000e+00
+
+## [2026-11-04 13:52:53] training
+- [Phase1 Epoch   5] Val Rel-MSE: 2.7092e-02 | S1:1.9163e-02 S2:3.5562e-02 S3:0.0000e+00
+
+## [2026-11-04 13:52:58] training
+- [Phase1 Epoch   6] Val Rel-MSE: 5.0926e-02 | S1:1.8949e-02 S2:8.5083e-02 S3:0.0000e+00
+
+## [2026-11-04 13:53:02] training
+- [Phase1 Epoch   7] Val Rel-MSE: 6.1658e-02 | S1:1.7353e-02 S2:1.0898e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:07] training
+- [Phase1 Epoch   8] Val Rel-MSE: 1.4654e-01 | S1:2.8845e-02 S2:2.7225e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:12] training
+- [Phase1 Epoch   9] Val Rel-MSE: 2.2399e-01 | S1:4.3046e-02 S2:4.1728e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:16] training
+- [Phase1 Epoch  10] Val Rel-MSE: 1.8980e-01 | S1:3.6832e-02 S2:3.5321e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:21] training
+- [Phase1 Epoch  11] Val Rel-MSE: 3.0751e-01 | S1:5.9236e-02 S2:5.7271e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:25] training
+- [Phase1 Epoch  12] Val Rel-MSE: 1.9036e-01 | S1:3.5962e-02 S2:3.5528e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:30] training
+- [Phase1 Epoch  13] Val Rel-MSE: 2.5141e-01 | S1:4.8207e-02 S2:4.6847e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:34] training
+- [Phase1 Epoch  14] Val Rel-MSE: 3.3131e-01 | S1:6.4868e-02 S2:6.1592e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:39] training
+- [Phase1 Epoch  15] Val Rel-MSE: 2.1844e-01 | S1:4.0742e-02 S2:4.0826e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:44] training
+- [Phase1 Epoch  16] Val Rel-MSE: 2.1938e-01 | S1:4.1495e-02 S2:4.0940e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:48] training
+- [Phase1 Epoch  17] Val Rel-MSE: 2.7118e-01 | S1:5.1399e-02 S2:5.0596e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:53] training
+- [Phase1 Epoch  18] Val Rel-MSE: 2.5966e-01 | S1:4.9062e-02 S2:4.8462e-01 S3:0.0000e+00
+
+## [2026-11-04 13:53:57] training
+- [Phase1 Epoch  19] Val Rel-MSE: 2.3954e-01 | S1:4.5077e-02 S2:4.4727e-01 S3:0.0000e+00
+
+## [2026-11-04 13:54:02] training
+- [Phase1 Epoch  20] Val Rel-MSE: 2.5525e-01 | S1:4.8231e-02 S2:4.7638e-01 S3:0.0000e+00
+
+## [2026-11-04 13:54:06] training
+- [Phase1 Epoch  21] Val Rel-MSE: 2.3856e-01 | S1:4.4583e-02 S2:4.4577e-01 S3:0.0000e+00
+
+## [2026-11-04 13:54:11] training
+- [Phase1 Epoch  22] Val Rel-MSE: 2.4259e-01 | S1:4.5610e-02 S2:4.5300e-01 S3:0.0000e+00
+
+## [2026-11-04 13:54:16] training
+- [Phase1 Epoch  23] Val Rel-MSE: 2.3919e-01 | S1:4.4920e-02 S2:4.4671e-01 S3:0.0000e+00
+
+## [2026-11-04 13:54:20] training
+- [Phase1 Epoch  24] Val Rel-MSE: 2.4109e-01 | S1:4.5293e-02 S2:4.5025e-01 S3:0.0000e+00
+
+## [2026-11-04 13:54:25] training
+- [Phase1 Epoch  25] Val Rel-MSE: 2.4172e-01 | S1:4.5418e-02 S2:4.5141e-01 S3:0.0000e+00
+
+## [2026-11-04 13:54:25] training
+- === Phase 2: Progressive Rollout ===
+
+## [2026-11-04 13:54:29] training
+- [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 1.7998e-02 | S1:1.8626e-02 S2:1.7328e-02 S3:0.0000e+00
+
+## [2026-11-04 13:54:34] training
+- [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 1.9490e-02 | S1:1.8095e-02 S2:2.0981e-02 S3:0.0000e+00
+
+## [2026-11-04 13:54:38] training
+- [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 2.0359e-02 | S1:1.9473e-02 S2:2.1306e-02 S3:0.0000e+00
+
+## [2026-11-04 13:54:43] training
+- [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 2.1317e-02 | S1:1.9130e-02 S2:2.3653e-02 S3:0.0000e+00
+
+## [2026-11-04 13:54:47] training
+- [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 2.1637e-02 | S1:2.0258e-02 S2:2.3111e-02 S3:0.0000e+00
+
+## [2026-11-04 13:54:52] training
+- [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 2.9415e-02 | S1:2.2781e-02 S2:3.6501e-02 S3:0.0000e+00
+
+## [2026-11-04 13:54:57] training
+- [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 3.5852e-02 | S1:1.9276e-02 S2:5.3558e-02 S3:0.0000e+00
+
+## [2026-11-04 13:55:01] training
+- [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 3.6403e-02 | S1:1.8976e-02 S2:5.5017e-02 S3:0.0000e+00
+
+## [2026-11-04 13:55:06] training
+- [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 4.6232e-02 | S1:2.1355e-02 S2:7.2805e-02 S3:0.0000e+00
+
+## [2026-11-04 13:55:10] training
+- [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 4.7176e-02 | S1:2.1107e-02 S2:7.5022e-02 S3:0.0000e+00
+
+## [2026-11-04 13:55:15] training
+- [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 4.8183e-02 | S1:2.1387e-02 S2:7.6805e-02 S3:0.0000e+00
+
+## [2026-11-04 13:55:20] training
+- [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 5.0503e-02 | S1:2.1056e-02 S2:8.1957e-02 S3:0.0000e+00
+
+## [2026-11-04 13:55:24] training
+- [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 5.8749e-02 | S1:2.3512e-02 S2:9.6388e-02 S3:0.0000e+00
+
+## [2026-11-04 13:55:30] training
+- [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 6.0504e-02 | S1:2.3212e-02 S2:1.0034e-01 S3:0.0000e+00
+
+## [2026-11-04 13:55:35] training
+- [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 6.1363e-02 | S1:2.3288e-02 S2:1.0203e-01 S3:0.0000e+00
+
+## [2026-11-04 13:55:40] training
+- [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 6.4018e-02 | S1:2.4479e-02 S2:1.0625e-01 S3:0.0000e+00
+
+## [2026-11-04 13:55:46] training
+- [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 6.4869e-02 | S1:2.4308e-02 S2:1.0820e-01 S3:0.0000e+00
+
+## [2026-11-04 13:55:52] training
+- [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 6.5911e-02 | S1:2.4581e-02 S2:1.1006e-01 S3:0.0000e+00
+
+## [2026-11-04 13:55:58] training
+- [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 6.5960e-02 | S1:2.4538e-02 S2:1.1021e-01 S3:0.0000e+00
+
+## [2026-11-04 13:56:04] training
+- [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 6.6002e-02 | S1:2.4552e-02 S2:1.1028e-01 S3:0.0000e+00
+
+## [2026-11-04 13:56:04] training
+- Training completed.
+
+## [2026-11-04 13:56:05] training
+- 训练完成 (220s)
+```
+output=/home/apde/pde_project/interim report/output/runs/scout_mgno
+```
+
+## [2026-11-04 13:56:05] eval
+- Scout mgno: overall=0.0660 seg1=0.0246 seg2=0.1103 seg3=0.0000
+
+## [2026-11-04 13:56:05] action
+- Scout 完成: 保留 ['fno', 'mgno']，进入全量训练
+
+## [2026-11-04 13:56:05] action
+- Phase 0.3: 跑 baseline — fno
+
+## [2026-11-04 13:56:05] action
+- 从模板复制: fno.py → model.py (model=fno)
+
+## [2026-11-04 13:56:06] action
+- 实例化检查: PASS
+```
+OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+```
+
+## [2026-11-04 13:56:06] action
+- 模型身份校验通过（baseline fno）：FNO1d
+
+## [2026-11-04 13:56:06] training
+- 开始训练: phase0_fno
+```
+Phase1=50eps + Phase2=100eps | cmd=/home/apde/miniconda3/bin/python3 /home/apde/pde_project/interim report/agent/train.py --train_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/train.h5 --val_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/val.h5 --save_dir /home/apde/pde_project/interim report/output/runs/phase0_fno --model_class FNO1d --seed 42 --num_workers 4
+```
+
+## [2026-11-04 13:56:13] training
+- === Phase 1: Teacher Forcing ===
+
+## [2026-11-04 13:56:18] training
+- [Phase1 Epoch   1] Val Rel-MSE: 1.9254e-02 | S1:2.0982e-02 S2:1.7409e-02 S3:0.0000e+00
+
+## [2026-11-04 13:56:23] training
+- [Phase1 Epoch   2] Val Rel-MSE: 2.8017e-03 | S1:4.0218e-03 S2:1.4984e-03 S3:0.0000e+00
+
+## [2026-11-04 13:56:28] training
+- [Phase1 Epoch   3] Val Rel-MSE: 1.6528e-03 | S1:1.9514e-03 S2:1.3338e-03 S3:0.0000e+00
+
+## [2026-11-04 13:56:34] training
+- [Phase1 Epoch   4] Val Rel-MSE: 3.5466e-03 | S1:2.0763e-03 S2:5.1173e-03 S3:0.0000e+00
+
+## [2026-11-04 13:56:39] training
+- [Phase1 Epoch   5] Val Rel-MSE: 7.4335e-04 | S1:9.3758e-04 S2:5.3586e-04 S3:0.0000e+00
+
+## [2026-11-04 13:56:44] training
+- [Phase1 Epoch   6] Val Rel-MSE: 4.8594e-04 | S1:7.4262e-04 S2:2.1175e-04 S3:0.0000e+00
+
+## [2026-11-04 13:56:49] training
+- [Phase1 Epoch   7] Val Rel-MSE: 4.6812e-04 | S1:6.1203e-04 S2:3.1440e-04 S3:0.0000e+00
+
+## [2026-11-04 13:56:54] training
+- [Phase1 Epoch   8] Val Rel-MSE: 2.8761e-04 | S1:3.4114e-04 S2:2.3043e-04 S3:0.0000e+00
+
+## [2026-11-04 13:56:59] training
+- [Phase1 Epoch   9] Val Rel-MSE: 3.0793e-04 | S1:3.3424e-04 S2:2.7983e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:05] training
+- [Phase1 Epoch  10] Val Rel-MSE: 3.5247e-04 | S1:2.5976e-04 S2:4.5151e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:10] training
+- [Phase1 Epoch  11] Val Rel-MSE: 5.0041e-04 | S1:4.8107e-04 S2:5.2107e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:15] training
+- [Phase1 Epoch  12] Val Rel-MSE: 2.4968e-04 | S1:1.9652e-04 S2:3.0647e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:20] training
+- [Phase1 Epoch  13] Val Rel-MSE: 1.7180e-04 | S1:1.4922e-04 S2:1.9592e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:25] training
+- [Phase1 Epoch  14] Val Rel-MSE: 1.8333e-04 | S1:1.2907e-04 S2:2.4130e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:31] training
+- [Phase1 Epoch  15] Val Rel-MSE: 1.2703e-04 | S1:8.5555e-05 S2:1.7133e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:36] training
+- [Phase1 Epoch  16] Val Rel-MSE: 3.0338e-04 | S1:2.1222e-04 S2:4.0076e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:41] training
+- [Phase1 Epoch  17] Val Rel-MSE: 6.2787e-05 | S1:5.9763e-05 S2:6.6017e-05 S3:0.0000e+00
+
+## [2026-11-04 13:57:46] training
+- [Phase1 Epoch  18] Val Rel-MSE: 2.3209e-04 | S1:1.5892e-04 S2:3.1024e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:51] training
+- [Phase1 Epoch  19] Val Rel-MSE: 3.7520e-04 | S1:2.6583e-04 S2:4.9203e-04 S3:0.0000e+00
+
+## [2026-11-04 13:57:56] training
+- [Phase1 Epoch  20] Val Rel-MSE: 1.2271e-04 | S1:9.6873e-05 S2:1.5031e-04 S3:0.0000e+00
+
+## [2026-11-04 13:58:02] training
+- [Phase1 Epoch  21] Val Rel-MSE: 4.7238e-04 | S1:3.0727e-04 S2:6.4876e-04 S3:0.0000e+00
+
+## [2026-11-04 13:58:07] training
+- [Phase1 Epoch  22] Val Rel-MSE: 1.9134e-04 | S1:1.5141e-04 S2:2.3400e-04 S3:0.0000e+00
+
+## [2026-11-04 13:58:12] training
+- [Phase1 Epoch  23] Val Rel-MSE: 5.2884e-05 | S1:5.3256e-05 S2:5.2487e-05 S3:0.0000e+00
+
+## [2026-11-04 13:58:17] training
+- [Phase1 Epoch  24] Val Rel-MSE: 7.8848e-05 | S1:6.9199e-05 S2:8.9154e-05 S3:0.0000e+00
+
+## [2026-11-04 13:58:22] training
+- [Phase1 Epoch  25] Val Rel-MSE: 1.1660e-04 | S1:5.9890e-05 S2:1.7718e-04 S3:0.0000e+00
+
+## [2026-11-04 13:58:28] training
+- [Phase1 Epoch  26] Val Rel-MSE: 5.7274e-05 | S1:4.5315e-05 S2:7.0048e-05 S3:0.0000e+00
+
+## [2026-11-04 13:58:33] training
+- [Phase1 Epoch  27] Val Rel-MSE: 5.2587e-05 | S1:3.4712e-05 S2:7.1680e-05 S3:0.0000e+00
+
+## [2026-11-04 13:58:38] training
+- [Phase1 Epoch  28] Val Rel-MSE: 6.0453e-05 | S1:3.8169e-05 S2:8.4256e-05 S3:0.0000e+00
+
+## [2026-11-04 13:58:43] training
+- [Phase1 Epoch  29] Val Rel-MSE: 4.5864e-05 | S1:3.9011e-05 S2:5.3185e-05 S3:0.0000e+00
+
+## [2026-11-04 13:58:48] training
+- [Phase1 Epoch  30] Val Rel-MSE: 4.8819e-05 | S1:4.3747e-05 S2:5.4238e-05 S3:0.0000e+00
+
+## [2026-11-04 13:58:53] training
+- [Phase1 Epoch  31] Val Rel-MSE: 4.1370e-05 | S1:3.5687e-05 S2:4.7440e-05 S3:0.0000e+00
+
+## [2026-11-04 13:58:59] training
+- [Phase1 Epoch  32] Val Rel-MSE: 3.5107e-05 | S1:2.2057e-05 S2:4.9047e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:04] training
+- [Phase1 Epoch  33] Val Rel-MSE: 3.1311e-05 | S1:2.9518e-05 S2:3.3226e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:09] training
+- [Phase1 Epoch  34] Val Rel-MSE: 4.4342e-05 | S1:3.1489e-05 S2:5.8071e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:14] training
+- [Phase1 Epoch  35] Val Rel-MSE: 1.7459e-05 | S1:1.6739e-05 S2:1.8229e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:19] training
+- [Phase1 Epoch  36] Val Rel-MSE: 1.8631e-05 | S1:1.9300e-05 S2:1.7917e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:25] training
+- [Phase1 Epoch  37] Val Rel-MSE: 2.9533e-05 | S1:2.5540e-05 S2:3.3797e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:30] training
+- [Phase1 Epoch  38] Val Rel-MSE: 2.3519e-05 | S1:1.6056e-05 S2:3.1491e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:35] training
+- [Phase1 Epoch  39] Val Rel-MSE: 1.8391e-05 | S1:1.6908e-05 S2:1.9975e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:40] training
+- [Phase1 Epoch  40] Val Rel-MSE: 3.0933e-05 | S1:1.9069e-05 S2:4.3606e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:45] training
+- [Phase1 Epoch  41] Val Rel-MSE: 1.3291e-05 | S1:1.4175e-05 S2:1.2346e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:50] training
+- [Phase1 Epoch  42] Val Rel-MSE: 1.3405e-05 | S1:1.3687e-05 S2:1.3103e-05 S3:0.0000e+00
+
+## [2026-11-04 13:59:56] training
+- [Phase1 Epoch  43] Val Rel-MSE: 1.3569e-05 | S1:1.4587e-05 S2:1.2482e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:01] training
+- [Phase1 Epoch  44] Val Rel-MSE: 1.3569e-05 | S1:1.4283e-05 S2:1.2806e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:06] training
+- [Phase1 Epoch  45] Val Rel-MSE: 1.4214e-05 | S1:1.3357e-05 S2:1.5128e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:11] training
+- [Phase1 Epoch  46] Val Rel-MSE: 1.3551e-05 | S1:1.3495e-05 S2:1.3611e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:16] training
+- [Phase1 Epoch  47] Val Rel-MSE: 1.2470e-05 | S1:1.2831e-05 S2:1.2085e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:22] training
+- [Phase1 Epoch  48] Val Rel-MSE: 1.2079e-05 | S1:1.2625e-05 S2:1.1497e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:27] training
+- [Phase1 Epoch  49] Val Rel-MSE: 1.1459e-05 | S1:1.2279e-05 S2:1.0582e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:32] training
+- [Phase1 Epoch  50] Val Rel-MSE: 1.1410e-05 | S1:1.2174e-05 S2:1.0594e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:32] training
+- === Phase 2: Progressive Rollout ===
+
+## [2026-11-04 14:00:37] training
+- [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 1.3113e-05 | S1:1.3768e-05 S2:1.2414e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:42] training
+- [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 1.9251e-05 | S1:1.7140e-05 S2:2.1506e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:48] training
+- [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 1.6443e-05 | S1:1.5167e-05 S2:1.7805e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:53] training
+- [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 1.1738e-05 | S1:1.2190e-05 S2:1.1254e-05 S3:0.0000e+00
+
+## [2026-11-04 14:00:58] training
+- [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 1.2314e-05 | S1:1.2513e-05 S2:1.2101e-05 S3:0.0000e+00
+
+## [2026-11-04 14:01:03] training
+- [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 2.5086e-05 | S1:2.2633e-05 S2:2.7707e-05 S3:0.0000e+00
+
+## [2026-11-04 14:01:08] training
+- [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 2.1148e-05 | S1:1.9737e-05 S2:2.2656e-05 S3:0.0000e+00
+
+## [2026-11-04 14:01:14] training
+- [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 1.2142e-05 | S1:1.2093e-05 S2:1.2195e-05 S3:0.0000e+00
+
+## [2026-11-04 14:01:19] training
+- [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 1.4659e-05 | S1:1.2767e-05 S2:1.6679e-05 S3:0.0000e+00
+
+## [2026-11-04 14:01:24] training
+- [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 1.2940e-05 | S1:1.2943e-05 S2:1.2937e-05 S3:0.0000e+00
+
+## [2026-11-04 14:01:29] training
+- [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 1.5926e-05 | S1:1.3486e-05 S2:1.8533e-05 S3:0.0000e+00
+
+## [2026-11-04 14:01:35] training
+- [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 3.1251e-05 | S1:1.9180e-05 S2:4.4146e-05 S3:0.0000e+00
+
+## [2026-11-04 14:01:43] training
+- [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 1.8932e-05 | S1:1.4901e-05 S2:2.3237e-05 S3:0.0000e+00
+
+## [2026-11-04 14:01:52] training
+- [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 1.0843e-05 | S1:1.0924e-05 S2:1.0757e-05 S3:0.0000e+00
+
+## [2026-11-04 14:02:02] training
+- [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 1.0492e-05 | S1:1.0716e-05 S2:1.0252e-05 S3:0.0000e+00
+
+## [2026-11-04 14:02:13] training
+- [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 9.4681e-06 | S1:1.0202e-05 S2:8.6843e-06 S3:0.0000e+00
+
+## [2026-11-04 14:02:26] training
+- [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 1.1016e-05 | S1:1.1305e-05 S2:1.0708e-05 S3:0.0000e+00
+
+## [2026-11-04 14:02:40] training
+- [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 9.1758e-06 | S1:1.0068e-05 S2:8.2227e-06 S3:0.0000e+00
+
+## [2026-11-04 14:02:55] training
+- [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 9.0560e-06 | S1:9.8489e-06 S2:8.2090e-06 S3:0.0000e+00
+
+## [2026-11-04 14:03:11] training
+- [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 9.6709e-06 | S1:1.0024e-05 S2:9.2935e-06 S3:0.0000e+00
+
+## [2026-11-04 14:03:28] training
+- [Phase2 Epoch  21] roll=11 | Val Rel-MSE: 9.1172e-06 | S1:9.8220e-06 S2:8.3643e-06 S3:0.0000e+00
+
+## [2026-11-04 14:03:46] training
+- [Phase2 Epoch  22] roll=12 | Val Rel-MSE: 1.1104e-05 | S1:1.0700e-05 S2:1.1534e-05 S3:0.0000e+00
+
+## [2026-11-04 14:04:06] training
+- [Phase2 Epoch  23] roll=13 | Val Rel-MSE: 9.8157e-06 | S1:9.9076e-06 S2:9.7175e-06 S3:0.0000e+00
+
+## [2026-11-04 14:04:26] training
+- [Phase2 Epoch  24] roll=14 | Val Rel-MSE: 8.7195e-06 | S1:9.4980e-06 S2:7.8879e-06 S3:0.0000e+00
+
+## [2026-11-04 14:04:48] training
+- [Phase2 Epoch  25] roll=15 | Val Rel-MSE: 1.0253e-05 | S1:1.0425e-05 S2:1.0069e-05 S3:0.0000e+00
+
+## [2026-11-04 14:05:10] training
+- [Phase2 Epoch  26] roll=16 | Val Rel-MSE: 9.1197e-06 | S1:9.7111e-06 S2:8.4879e-06 S3:0.0000e+00
+
+## [2026-11-04 14:05:34] training
+- [Phase2 Epoch  27] roll=17 | Val Rel-MSE: 9.6182e-06 | S1:9.9209e-06 S2:9.2949e-06 S3:0.0000e+00
+
+## [2026-11-04 14:05:59] training
+- [Phase2 Epoch  28] roll=18 | Val Rel-MSE: 8.7469e-06 | S1:9.3595e-06 S2:8.0925e-06 S3:0.0000e+00
+
+## [2026-11-04 14:06:24] training
+- [Phase2 Epoch  29] roll=19 | Val Rel-MSE: 9.5076e-06 | S1:9.8523e-06 S2:9.1395e-06 S3:0.0000e+00
+
+## [2026-11-04 14:06:51] training
+- [Phase2 Epoch  30] roll=20 | Val Rel-MSE: 8.4847e-06 | S1:9.2287e-06 S2:7.6899e-06 S3:0.0000e+00
+
+## [2026-11-04 14:07:19] training
+- [Phase2 Epoch  31] roll=21 | Val Rel-MSE: 9.4798e-06 | S1:9.4800e-06 S2:9.4796e-06 S3:0.0000e+00
+
+## [2026-11-04 14:07:48] training
+- [Phase2 Epoch  32] roll=22 | Val Rel-MSE: 8.3665e-06 | S1:9.1955e-06 S2:7.4808e-06 S3:0.0000e+00
+
+## [2026-11-04 14:08:17] training
+- [Phase2 Epoch  33] roll=23 | Val Rel-MSE: 8.2810e-06 | S1:8.9955e-06 S2:7.5179e-06 S3:0.0000e+00
+
+## [2026-11-04 14:08:47] training
+- [Phase2 Epoch  34] roll=24 | Val Rel-MSE: 8.5139e-06 | S1:9.0510e-06 S2:7.9401e-06 S3:0.0000e+00
+
+## [2026-11-04 14:09:19] training
+- [Phase2 Epoch  35] roll=25 | Val Rel-MSE: 8.2032e-06 | S1:8.9521e-06 S2:7.4032e-06 S3:0.0000e+00
+
+## [2026-11-04 14:09:52] training
+- [Phase2 Epoch  36] roll=26 | Val Rel-MSE: 8.8748e-06 | S1:9.3401e-06 S2:8.3777e-06 S3:0.0000e+00
+
+## [2026-11-04 14:10:25] training
+- [Phase2 Epoch  37] roll=27 | Val Rel-MSE: 8.0618e-06 | S1:8.7378e-06 S2:7.3397e-06 S3:0.0000e+00
+
+## [2026-11-04 14:11:00] training
+- [Phase2 Epoch  38] roll=28 | Val Rel-MSE: 7.9958e-06 | S1:8.9419e-06 S2:6.9852e-06 S3:0.0000e+00
+
+## [2026-11-04 14:11:35] training
+- [Phase2 Epoch  39] roll=29 | Val Rel-MSE: 7.8246e-06 | S1:8.6758e-06 S2:6.9152e-06 S3:0.0000e+00
+
+## [2026-11-04 14:12:11] training
+- [Phase2 Epoch  40] roll=30 | Val Rel-MSE: 7.8049e-06 | S1:8.5819e-06 S2:6.9750e-06 S3:0.0000e+00
+
+## [2026-11-04 14:12:49] training
+- [Phase2 Epoch  41] roll=31 | Val Rel-MSE: 7.6124e-06 | S1:8.4026e-06 S2:6.7683e-06 S3:0.0000e+00
+
+## [2026-11-04 14:13:27] training
+- [Phase2 Epoch  42] roll=32 | Val Rel-MSE: 7.6684e-06 | S1:8.4651e-06 S2:6.8174e-06 S3:0.0000e+00
+
+## [2026-11-04 14:14:06] training
+- [Phase2 Epoch  43] roll=33 | Val Rel-MSE: 7.7850e-06 | S1:8.4435e-06 S2:7.0816e-06 S3:0.0000e+00
+
+## [2026-11-04 14:14:47] training
+- [Phase2 Epoch  44] roll=34 | Val Rel-MSE: 7.4787e-06 | S1:8.4574e-06 S2:6.4334e-06 S3:0.0000e+00
+
+## [2026-11-04 14:15:28] training
+- [Phase2 Epoch  45] roll=35 | Val Rel-MSE: 7.3100e-06 | S1:8.1909e-06 S2:6.3689e-06 S3:0.0000e+00
+
+## [2026-11-04 14:16:10] training
+- [Phase2 Epoch  46] roll=36 | Val Rel-MSE: 8.7436e-06 | S1:9.2450e-06 S2:8.2079e-06 S3:0.0000e+00
+
+## [2026-11-04 14:16:54] training
+- [Phase2 Epoch  47] roll=37 | Val Rel-MSE: 7.2579e-06 | S1:8.2059e-06 S2:6.2453e-06 S3:0.0000e+00
+
+## [2026-11-04 14:17:38] training
+- [Phase2 Epoch  48] roll=38 | Val Rel-MSE: 7.4676e-06 | S1:8.2679e-06 S2:6.6128e-06 S3:0.0000e+00
+
+## [2026-11-04 14:18:23] training
+- [Phase2 Epoch  49] roll=39 | Val Rel-MSE: 7.2966e-06 | S1:8.1751e-06 S2:6.3583e-06 S3:0.0000e+00
+
+## [2026-11-04 14:19:09] training
+- [Phase2 Epoch  50] roll=40 | Val Rel-MSE: 7.3557e-06 | S1:8.1786e-06 S2:6.4766e-06 S3:0.0000e+00
+
+## [2026-11-04 14:19:56] training
+- [Phase2 Epoch  51] roll=41 | Val Rel-MSE: 7.1078e-06 | S1:8.0345e-06 S2:6.1179e-06 S3:0.0000e+00
+
+## [2026-11-04 14:20:44] training
+- [Phase2 Epoch  52] roll=42 | Val Rel-MSE: 7.1998e-06 | S1:7.9378e-06 S2:6.4115e-06 S3:0.0000e+00
+
+## [2026-11-04 14:21:33] training
+- [Phase2 Epoch  53] roll=43 | Val Rel-MSE: 6.9899e-06 | S1:7.9198e-06 S2:5.9966e-06 S3:0.0000e+00
+
+## [2026-11-04 14:22:23] training
+- [Phase2 Epoch  54] roll=44 | Val Rel-MSE: 7.2360e-06 | S1:7.9383e-06 S2:6.4858e-06 S3:0.0000e+00
+
+## [2026-11-04 14:23:15] training
+- [Phase2 Epoch  55] roll=46 | Val Rel-MSE: 7.6929e-06 | S1:8.0396e-06 S2:7.3225e-06 S3:0.0000e+00
+
+## [2026-11-04 14:24:08] training
+- [Phase2 Epoch  56] roll=47 | Val Rel-MSE: 6.8030e-06 | S1:7.7894e-06 S2:5.7492e-06 S3:0.0000e+00
+
+## [2026-11-04 14:25:02] training
+- [Phase2 Epoch  57] roll=48 | Val Rel-MSE: 6.9211e-06 | S1:7.8626e-06 S2:5.9154e-06 S3:0.0000e+00
+
+## [2026-11-04 14:25:56] training
+- [Phase2 Epoch  58] roll=49 | Val Rel-MSE: 6.8499e-06 | S1:7.6781e-06 S2:5.9654e-06 S3:0.0000e+00
+
+## [2026-11-04 14:26:52] training
+- [Phase2 Epoch  59] roll=50 | Val Rel-MSE: 6.7008e-06 | S1:7.7067e-06 S2:5.6263e-06 S3:0.0000e+00
+
+## [2026-11-04 14:27:50] training
+- [Phase2 Epoch  60] roll=52 | Val Rel-MSE: 6.9230e-06 | S1:7.6044e-06 S2:6.1952e-06 S3:0.0000e+00
+
+## [2026-11-04 14:28:48] training
+- [Phase2 Epoch  61] roll=53 | Val Rel-MSE: 7.2283e-06 | S1:7.7692e-06 S2:6.6506e-06 S3:0.0000e+00
+
+## [2026-11-04 14:29:50] training
+- [Phase2 Epoch  62] roll=54 | Val Rel-MSE: 6.4992e-06 | S1:7.4521e-06 S2:5.4812e-06 S3:0.0000e+00
+
+## [2026-11-04 14:30:54] training
+- [Phase2 Epoch  63] roll=55 | Val Rel-MSE: 6.5052e-06 | S1:7.4064e-06 S2:5.5426e-06 S3:0.0000e+00
+
+## [2026-11-04 14:31:59] training
+- [Phase2 Epoch  64] roll=56 | Val Rel-MSE: 6.5138e-06 | S1:7.4170e-06 S2:5.5490e-06 S3:0.0000e+00
+
+## [2026-11-04 14:33:05] training
+- [Phase2 Epoch  65] roll=58 | Val Rel-MSE: 6.4990e-06 | S1:7.4324e-06 S2:5.5019e-06 S3:0.0000e+00
+
+## [2026-11-04 14:34:12] training
+- [Phase2 Epoch  66] roll=59 | Val Rel-MSE: 6.3113e-06 | S1:7.3089e-06 S2:5.2457e-06 S3:0.0000e+00
+
+## [2026-11-04 14:35:21] training
+- [Phase2 Epoch  67] roll=60 | Val Rel-MSE: 6.3283e-06 | S1:7.3146e-06 S2:5.2747e-06 S3:0.0000e+00
+
+## [2026-11-04 14:36:30] training
+- [Phase2 Epoch  68] roll=61 | Val Rel-MSE: 6.5997e-06 | S1:7.3573e-06 S2:5.7905e-06 S3:0.0000e+00
+
+## [2026-11-04 14:37:41] training
+- [Phase2 Epoch  69] roll=62 | Val Rel-MSE: 6.6469e-06 | S1:7.2710e-06 S2:5.9802e-06 S3:0.0000e+00
+
+## [2026-11-04 14:38:53] training
+- [Phase2 Epoch  70] roll=64 | Val Rel-MSE: 6.1299e-06 | S1:7.1160e-06 S2:5.0765e-06 S3:0.0000e+00
+
+## [2026-11-04 14:40:07] training
+- [Phase2 Epoch  71] roll=65 | Val Rel-MSE: 6.1266e-06 | S1:7.1139e-06 S2:5.0719e-06 S3:0.0000e+00
+
+## [2026-11-04 14:41:22] training
+- [Phase2 Epoch  72] roll=66 | Val Rel-MSE: 6.1330e-06 | S1:7.1017e-06 S2:5.0983e-06 S3:0.0000e+00
+
+## [2026-11-04 14:42:37] training
+- [Phase2 Epoch  73] roll=67 | Val Rel-MSE: 6.0630e-06 | S1:7.0575e-06 S2:5.0007e-06 S3:0.0000e+00
+
+## [2026-11-04 14:43:54] training
+- [Phase2 Epoch  74] roll=68 | Val Rel-MSE: 6.0789e-06 | S1:7.0512e-06 S2:5.0403e-06 S3:0.0000e+00
+
+## [2026-11-04 14:45:12] training
+- [Phase2 Epoch  75] roll=70 | Val Rel-MSE: 6.0614e-06 | S1:7.0154e-06 S2:5.0423e-06 S3:0.0000e+00
+
+## [2026-11-04 14:46:34] training
+- [Phase2 Epoch  76] roll=71 | Val Rel-MSE: 6.0272e-06 | S1:7.0069e-06 S2:4.9807e-06 S3:0.0000e+00
+
+## [2026-11-04 14:47:56] training
+- [Phase2 Epoch  77] roll=72 | Val Rel-MSE: 6.1060e-06 | S1:7.0085e-06 S2:5.1419e-06 S3:0.0000e+00
+
+## [2026-11-04 14:49:18] training
+- [Phase2 Epoch  78] roll=73 | Val Rel-MSE: 6.0625e-06 | S1:6.9860e-06 S2:5.0760e-06 S3:0.0000e+00
+
+## [2026-11-04 14:50:41] training
+- [Phase2 Epoch  79] roll=74 | Val Rel-MSE: 5.9580e-06 | S1:6.9117e-06 S2:4.9393e-06 S3:0.0000e+00
+
+## [2026-11-04 14:52:07] training
+- [Phase2 Epoch  80] roll=76 | Val Rel-MSE: 6.0907e-06 | S1:6.9957e-06 S2:5.1240e-06 S3:0.0000e+00
+
+## [2026-11-04 14:53:37] training
+- [Phase2 Epoch  81] roll=77 | Val Rel-MSE: 5.8996e-06 | S1:6.8621e-06 S2:4.8714e-06 S3:0.0000e+00
+
+## [2026-11-04 14:55:05] training
+- [Phase2 Epoch  82] roll=78 | Val Rel-MSE: 5.9024e-06 | S1:6.8592e-06 S2:4.8804e-06 S3:0.0000e+00
+
+## [2026-11-04 14:56:35] training
+- [Phase2 Epoch  83] roll=79 | Val Rel-MSE: 5.8533e-06 | S1:6.8190e-06 S2:4.8217e-06 S3:0.0000e+00
+
+## [2026-11-04 14:58:06] training
+- [Phase2 Epoch  84] roll=80 | Val Rel-MSE: 5.8122e-06 | S1:6.7821e-06 S2:4.7761e-06 S3:0.0000e+00
+
+## [2026-11-04 14:59:39] training
+- [Phase2 Epoch  85] roll=82 | Val Rel-MSE: 5.7889e-06 | S1:6.7515e-06 S2:4.7606e-06 S3:0.0000e+00
+
+## [2026-11-04 15:01:12] training
+- [Phase2 Epoch  86] roll=83 | Val Rel-MSE: 5.7651e-06 | S1:6.7259e-06 S2:4.7387e-06 S3:0.0000e+00
+
+## [2026-11-04 15:02:47] training
+- [Phase2 Epoch  87] roll=84 | Val Rel-MSE: 5.7475e-06 | S1:6.7060e-06 S2:4.7236e-06 S3:0.0000e+00
+
+## [2026-11-04 15:04:22] training
+- [Phase2 Epoch  88] roll=85 | Val Rel-MSE: 5.7269e-06 | S1:6.6754e-06 S2:4.7137e-06 S3:0.0000e+00
+
+## [2026-11-04 15:06:15] training
+- [Phase2 Epoch  89] roll=86 | Val Rel-MSE: 5.7128e-06 | S1:6.6580e-06 S2:4.7031e-06 S3:0.0000e+00
+
+## [2026-11-04 15:08:09] training
+- [Phase2 Epoch  90] roll=88 | Val Rel-MSE: 5.6770e-06 | S1:6.6131e-06 S2:4.6770e-06 S3:0.0000e+00
+
+## [2026-11-04 15:10:02] training
+- [Phase2 Epoch  91] roll=89 | Val Rel-MSE: 5.7033e-06 | S1:6.6046e-06 S2:4.7405e-06 S3:0.0000e+00
+
+## [2026-11-04 15:11:56] training
+- [Phase2 Epoch  92] roll=90 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 15:12:01] training
+- [Phase2 Epoch  93] roll=91 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 15:12:05] training
+- [Phase2 Epoch  94] roll=92 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 15:12:10] training
+- [Phase2 Epoch  95] roll=94 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 15:12:15] training
+- [Phase2 Epoch  96] roll=95 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 15:12:20] training
+- [Phase2 Epoch  97] roll=96 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 15:12:25] training
+- [Phase2 Epoch  98] roll=97 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 15:12:30] training
+- [Phase2 Epoch  99] roll=98 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 15:12:35] training
+- [Phase2 Epoch 100] roll=100 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 15:12:35] training
+- Training completed.
+
+## [2026-11-04 15:12:36] training
+- 训练完成 (4590s)
+```
+output=/home/apde/pde_project/interim report/output/runs/phase0_fno
+```
+
+## [2026-11-04 15:12:38] action
+- 实例化检查: PASS
+```
+OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+```
+
+## [2026-11-04 15:12:38] action
+- 保存快照: phase0_fno (fno/FNO1d)
+```
+identity_ok=True ckpt=/home/apde/pde_project/interim report/output/runs/phase0_fno/best_phase2.pt parent=-
+```
+
+## [2026-11-04 15:12:38] action
+- Phase 0.3: 跑 baseline — mgno
+
+## [2026-11-04 15:12:38] action
+- 从模板复制: mgno.py → model.py (model=mgno)
+
+## [2026-11-04 15:12:39] action
+- 实例化检查: PASS
+```
+OK: MGNO1d input=[2, 256, 10] output=[2, 256]
+```
+
+## [2026-11-04 15:12:39] action
+- 模型身份校验通过（baseline mgno）：MGNO1d
+
+## [2026-11-04 15:12:39] training
+- 开始训练: phase0_mgno
+```
+Phase1=50eps + Phase2=100eps | cmd=/home/apde/miniconda3/bin/python3 /home/apde/pde_project/interim report/agent/train.py --train_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/train.h5 --val_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/val.h5 --save_dir /home/apde/pde_project/interim report/output/runs/phase0_mgno --model_class MGNO1d --seed 42 --num_workers 4
+```
+
+## [2026-11-04 15:12:46] training
+- === Phase 1: Teacher Forcing ===
+
+## [2026-11-04 15:12:56] training
+- [Phase1 Epoch   1] Val Rel-MSE: 1.5929e-01 | S1:3.0881e-02 S2:2.9644e-01 S3:0.0000e+00
+
+## [2026-11-04 15:13:06] training
+- [Phase1 Epoch   2] Val Rel-MSE: 2.6287e-01 | S1:4.7910e-02 S2:4.9249e-01 S3:0.0000e+00
+
+## [2026-11-04 15:13:15] training
+- [Phase1 Epoch   3] Val Rel-MSE: 1.1317e-01 | S1:1.6091e-02 S2:2.1687e-01 S3:0.0000e+00
+
+## [2026-11-04 15:13:25] training
+- [Phase1 Epoch   4] Val Rel-MSE: 5.2921e-02 | S1:7.8435e-03 S2:1.0107e-01 S3:0.0000e+00
+
+## [2026-11-04 15:13:34] training
+- [Phase1 Epoch   5] Val Rel-MSE: 4.4540e-03 | S1:2.4001e-03 S2:6.6479e-03 S3:0.0000e+00
+
+## [2026-11-04 15:13:43] training
+- [Phase1 Epoch   6] Val Rel-MSE: 5.3265e-03 | S1:2.5065e-03 S2:8.3388e-03 S3:0.0000e+00
+
+## [2026-11-04 15:13:52] training
+- [Phase1 Epoch   7] Val Rel-MSE: 3.2631e-03 | S1:1.4267e-03 S2:5.2248e-03 S3:0.0000e+00
+
+## [2026-11-04 15:14:00] training
+- [Phase1 Epoch   8] Val Rel-MSE: 1.5407e-03 | S1:8.1519e-04 S2:2.3157e-03 S3:0.0000e+00
+
+## [2026-11-04 15:14:09] training
+- [Phase1 Epoch   9] Val Rel-MSE: 8.0996e-04 | S1:5.8416e-04 S2:1.0511e-03 S3:0.0000e+00
+
+## [2026-11-04 15:14:17] training
+- [Phase1 Epoch  10] Val Rel-MSE: 8.3736e-04 | S1:4.0656e-04 S2:1.2975e-03 S3:0.0000e+00
+
+## [2026-11-04 15:14:26] training
+- [Phase1 Epoch  11] Val Rel-MSE: 8.2128e-04 | S1:4.7652e-04 S2:1.1895e-03 S3:0.0000e+00
+
+## [2026-11-04 15:14:35] training
+- [Phase1 Epoch  12] Val Rel-MSE: 1.5630e-03 | S1:7.3843e-04 S2:2.4438e-03 S3:0.0000e+00
+
+## [2026-11-04 15:14:44] training
+- [Phase1 Epoch  13] Val Rel-MSE: 4.2516e-04 | S1:1.6616e-04 S2:7.0181e-04 S3:0.0000e+00
+
+## [2026-11-04 15:14:52] training
+- [Phase1 Epoch  14] Val Rel-MSE: 3.1358e-04 | S1:1.7450e-04 S2:4.6214e-04 S3:0.0000e+00
+
+## [2026-11-04 15:15:01] training
+- [Phase1 Epoch  15] Val Rel-MSE: 3.9797e-04 | S1:2.5866e-04 S2:5.4678e-04 S3:0.0000e+00
+
+## [2026-11-04 15:15:10] training
+- [Phase1 Epoch  16] Val Rel-MSE: 2.5069e-04 | S1:1.9320e-04 S2:3.1210e-04 S3:0.0000e+00
+
+## [2026-11-04 15:15:18] training
+- [Phase1 Epoch  17] Val Rel-MSE: 3.4780e-04 | S1:1.4871e-04 S2:5.6047e-04 S3:0.0000e+00
+
+## [2026-11-04 15:15:27] training
+- [Phase1 Epoch  18] Val Rel-MSE: 4.6302e-04 | S1:4.0460e-04 S2:5.2543e-04 S3:0.0000e+00
+
+## [2026-11-04 15:15:36] training
+- [Phase1 Epoch  19] Val Rel-MSE: 1.9359e-04 | S1:1.4871e-04 S2:2.4153e-04 S3:0.0000e+00
+
+## [2026-11-04 15:15:44] training
+- [Phase1 Epoch  20] Val Rel-MSE: 2.4871e-04 | S1:1.4895e-04 S2:3.5526e-04 S3:0.0000e+00
+
+## [2026-11-04 15:15:54] training
+- [Phase1 Epoch  21] Val Rel-MSE: 4.9376e-04 | S1:2.9606e-04 S2:7.0493e-04 S3:0.0000e+00
+
+## [2026-11-04 15:16:04] training
+- [Phase1 Epoch  22] Val Rel-MSE: 2.4326e-04 | S1:1.2618e-04 S2:3.6833e-04 S3:0.0000e+00
+
+## [2026-11-04 15:16:13] training
+- [Phase1 Epoch  23] Val Rel-MSE: 4.7904e-04 | S1:3.0954e-04 S2:6.6010e-04 S3:0.0000e+00
+
+## [2026-11-04 15:16:23] training
+- [Phase1 Epoch  24] Val Rel-MSE: 4.0765e-04 | S1:2.8152e-04 S2:5.4238e-04 S3:0.0000e+00
+
+## [2026-11-04 15:16:32] training
+- [Phase1 Epoch  25] Val Rel-MSE: 1.3248e-04 | S1:8.9007e-05 S2:1.7891e-04 S3:0.0000e+00
+
+## [2026-11-04 15:16:42] training
+- [Phase1 Epoch  26] Val Rel-MSE: 1.1016e-04 | S1:8.5216e-05 S2:1.3680e-04 S3:0.0000e+00
+
+## [2026-11-04 15:16:51] training
+- [Phase1 Epoch  27] Val Rel-MSE: 1.4335e-04 | S1:6.6886e-05 S2:2.2503e-04 S3:0.0000e+00
+
+## [2026-11-04 15:17:01] training
+- [Phase1 Epoch  28] Val Rel-MSE: 2.8080e-04 | S1:1.8952e-04 S2:3.7830e-04 S3:0.0000e+00
+
+## [2026-11-04 15:17:10] training
+- [Phase1 Epoch  29] Val Rel-MSE: 1.3275e-04 | S1:8.8104e-05 S2:1.8044e-04 S3:0.0000e+00
+
+## [2026-11-04 15:17:20] training
+- [Phase1 Epoch  30] Val Rel-MSE: 1.5663e-04 | S1:6.1754e-05 S2:2.5797e-04 S3:0.0000e+00
+
+## [2026-11-04 15:17:29] training
+- [Phase1 Epoch  31] Val Rel-MSE: 5.6014e-05 | S1:3.2869e-05 S2:8.0737e-05 S3:0.0000e+00
+
+## [2026-11-04 15:17:38] training
+- [Phase1 Epoch  32] Val Rel-MSE: 1.0429e-04 | S1:5.9453e-05 S2:1.5218e-04 S3:0.0000e+00
+
+## [2026-11-04 15:17:48] training
+- [Phase1 Epoch  33] Val Rel-MSE: 1.0320e-04 | S1:8.1030e-05 S2:1.2688e-04 S3:0.0000e+00
+
+## [2026-11-04 15:17:58] training
+- [Phase1 Epoch  34] Val Rel-MSE: 8.3710e-05 | S1:6.4891e-05 S2:1.0381e-04 S3:0.0000e+00
+
+## [2026-11-04 15:18:06] training
+- [Phase1 Epoch  35] Val Rel-MSE: 9.8136e-05 | S1:5.3311e-05 S2:1.4602e-04 S3:0.0000e+00
+
+## [2026-11-04 15:18:16] training
+- [Phase1 Epoch  36] Val Rel-MSE: 5.4541e-05 | S1:4.9861e-05 S2:5.9540e-05 S3:0.0000e+00
+
+## [2026-11-04 15:18:25] training
+- [Phase1 Epoch  37] Val Rel-MSE: 1.8067e-04 | S1:1.1634e-04 S2:2.4937e-04 S3:0.0000e+00
+
+## [2026-11-04 15:18:34] training
+- [Phase1 Epoch  38] Val Rel-MSE: 5.9661e-05 | S1:3.3628e-05 S2:8.7469e-05 S3:0.0000e+00
+
+## [2026-11-04 15:18:43] training
+- [Phase1 Epoch  39] Val Rel-MSE: 6.5104e-05 | S1:3.6228e-05 S2:9.5948e-05 S3:0.0000e+00
+
+## [2026-11-04 15:18:53] training
+- [Phase1 Epoch  40] Val Rel-MSE: 8.4239e-05 | S1:5.1040e-05 S2:1.1970e-04 S3:0.0000e+00
+
+## [2026-11-04 15:19:02] training
+- [Phase1 Epoch  41] Val Rel-MSE: 4.4363e-05 | S1:3.0675e-05 S2:5.8984e-05 S3:0.0000e+00
+
+## [2026-11-04 15:19:11] training
+- [Phase1 Epoch  42] Val Rel-MSE: 3.7166e-05 | S1:3.0203e-05 S2:4.4605e-05 S3:0.0000e+00
+
+## [2026-11-04 15:19:20] training
+- [Phase1 Epoch  43] Val Rel-MSE: 4.0254e-05 | S1:2.8254e-05 S2:5.3071e-05 S3:0.0000e+00
+
+## [2026-11-04 15:19:30] training
+- [Phase1 Epoch  44] Val Rel-MSE: 4.7135e-05 | S1:3.7142e-05 S2:5.7809e-05 S3:0.0000e+00
+
+## [2026-11-04 15:19:39] training
+- [Phase1 Epoch  45] Val Rel-MSE: 3.2242e-05 | S1:1.9664e-05 S2:4.5679e-05 S3:0.0000e+00
+
+## [2026-11-04 15:19:49] training
+- [Phase1 Epoch  46] Val Rel-MSE: 2.6918e-05 | S1:2.3110e-05 S2:3.0986e-05 S3:0.0000e+00
+
+## [2026-11-04 15:19:58] training
+- [Phase1 Epoch  47] Val Rel-MSE: 2.7605e-05 | S1:2.3801e-05 S2:3.1669e-05 S3:0.0000e+00
+
+## [2026-11-04 15:20:08] training
+- [Phase1 Epoch  48] Val Rel-MSE: 2.2841e-05 | S1:1.7705e-05 S2:2.8329e-05 S3:0.0000e+00
+
+## [2026-11-04 15:20:18] training
+- [Phase1 Epoch  49] Val Rel-MSE: 2.3048e-05 | S1:1.8133e-05 S2:2.8299e-05 S3:0.0000e+00
+
+## [2026-11-04 15:20:28] training
+- [Phase1 Epoch  50] Val Rel-MSE: 2.2726e-05 | S1:1.7500e-05 S2:2.8309e-05 S3:0.0000e+00
+
+## [2026-11-04 15:20:28] training
+- === Phase 2: Progressive Rollout ===
+
+## [2026-11-04 15:20:39] training
+- [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 4.9301e-05 | S1:3.4046e-05 S2:6.5596e-05 S3:0.0000e+00
+
+## [2026-11-04 15:20:49] training
+- [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 4.7904e-05 | S1:2.5564e-05 S2:7.1767e-05 S3:0.0000e+00
+
+## [2026-11-04 15:20:59] training
+- [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 6.4692e-05 | S1:3.1201e-05 S2:1.0047e-04 S3:0.0000e+00
+
+## [2026-11-04 15:21:10] training
+- [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 2.9044e-05 | S1:2.0895e-05 S2:3.7750e-05 S3:0.0000e+00
+
+## [2026-11-04 15:21:20] training
+- [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 5.2332e-05 | S1:3.1250e-05 S2:7.4853e-05 S3:0.0000e+00
+
+## [2026-11-04 15:21:30] training
+- [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 4.8027e-05 | S1:2.4655e-05 S2:7.2993e-05 S3:0.0000e+00
+
+## [2026-11-04 15:21:40] training
+- [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 4.3391e-05 | S1:3.5345e-05 S2:5.1986e-05 S3:0.0000e+00
+
+## [2026-11-04 15:21:50] training
+- [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 4.6900e-05 | S1:2.9795e-05 S2:6.5171e-05 S3:0.0000e+00
+
+## [2026-11-04 15:22:00] training
+- [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 1.4069e-04 | S1:9.2731e-05 S2:1.9191e-04 S3:0.0000e+00
+
+## [2026-11-04 15:22:10] training
+- [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 8.9401e-05 | S1:6.2911e-05 S2:1.1770e-04 S3:0.0000e+00
+
+## [2026-11-04 15:22:20] training
+- [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 9.7749e-05 | S1:3.9650e-05 S2:1.5981e-04 S3:0.0000e+00
+
+## [2026-11-04 15:22:32] training
+- [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 3.9764e-05 | S1:2.3943e-05 S2:5.6664e-05 S3:0.0000e+00
+
+## [2026-11-04 15:22:46] training
+- [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 4.5525e-05 | S1:2.3025e-05 S2:6.9559e-05 S3:0.0000e+00
+
+## [2026-11-04 15:23:01] training
+- [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 5.0291e-05 | S1:2.9479e-05 S2:7.2523e-05 S3:0.0000e+00
+
+## [2026-11-04 15:23:18] training
+- [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 3.3637e-05 | S1:1.8637e-05 S2:4.9660e-05 S3:0.0000e+00
+
+## [2026-11-04 15:23:39] training
+- [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 2.8231e-05 | S1:2.0662e-05 S2:3.6316e-05 S3:0.0000e+00
+
+## [2026-11-04 15:24:02] training
+- [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 3.7741e-05 | S1:2.1986e-05 S2:5.4569e-05 S3:0.0000e+00
+
+## [2026-11-04 15:24:27] training
+- [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 2.6559e-05 | S1:2.0557e-05 S2:3.2970e-05 S3:0.0000e+00
+
+## [2026-11-04 15:24:56] training
+- [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 3.5033e-05 | S1:2.1791e-05 S2:4.9178e-05 S3:0.0000e+00
+
+## [2026-11-04 15:25:19] training
+- [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 2.1798e-05 | S1:1.7180e-05 S2:2.6732e-05 S3:0.0000e+00
+
+## [2026-11-04 15:25:46] training
+- [Phase2 Epoch  21] roll=11 | Val Rel-MSE: 2.8566e-05 | S1:2.2014e-05 S2:3.5565e-05 S3:0.0000e+00
+
+## [2026-11-04 15:26:13] training
+- [Phase2 Epoch  22] roll=12 | Val Rel-MSE: 3.1417e-05 | S1:2.0773e-05 S2:4.2786e-05 S3:0.0000e+00
+
+## [2026-11-04 15:26:43] training
+- [Phase2 Epoch  23] roll=13 | Val Rel-MSE: 2.1605e-05 | S1:1.6944e-05 S2:2.6584e-05 S3:0.0000e+00
+
+## [2026-11-04 15:27:14] training
+- [Phase2 Epoch  24] roll=14 | Val Rel-MSE: 2.5632e-05 | S1:1.7416e-05 S2:3.4408e-05 S3:0.0000e+00
+
+## [2026-11-04 15:27:46] training
+- [Phase2 Epoch  25] roll=15 | Val Rel-MSE: 3.9011e-05 | S1:2.4716e-05 S2:5.4280e-05 S3:0.0000e+00
+
+## [2026-11-04 15:28:19] training
+- [Phase2 Epoch  26] roll=16 | Val Rel-MSE: 2.6695e-05 | S1:1.9355e-05 S2:3.4536e-05 S3:0.0000e+00
+
+## [2026-11-04 15:28:54] training
+- [Phase2 Epoch  27] roll=17 | Val Rel-MSE: 4.0045e-05 | S1:2.4084e-05 S2:5.7095e-05 S3:0.0000e+00
+
+## [2026-11-04 15:29:31] training
+- [Phase2 Epoch  28] roll=18 | Val Rel-MSE: 3.1285e-05 | S1:2.0913e-05 S2:4.2364e-05 S3:0.0000e+00
+
+## [2026-11-04 15:30:09] training
+- [Phase2 Epoch  29] roll=19 | Val Rel-MSE: 3.7068e-05 | S1:2.1923e-05 S2:5.3245e-05 S3:0.0000e+00
+
+## [2026-11-04 15:30:49] training
+- [Phase2 Epoch  30] roll=20 | Val Rel-MSE: 3.1100e-05 | S1:2.1196e-05 S2:4.1679e-05 S3:0.0000e+00
+
+## [2026-11-04 15:31:29] training
+- [Phase2 Epoch  31] roll=21 | Val Rel-MSE: 2.9948e-05 | S1:2.1522e-05 S2:3.8949e-05 S3:0.0000e+00
+
+## [2026-11-04 15:32:11] training
+- [Phase2 Epoch  32] roll=22 | Val Rel-MSE: 3.0637e-05 | S1:2.2475e-05 S2:3.9354e-05 S3:0.0000e+00
+
+## [2026-11-04 15:32:54] training
+- [Phase2 Epoch  33] roll=23 | Val Rel-MSE: 2.0845e-05 | S1:1.8171e-05 S2:2.3702e-05 S3:0.0000e+00
+
+## [2026-11-04 15:33:40] training
+- [Phase2 Epoch  34] roll=24 | Val Rel-MSE: 2.2288e-05 | S1:1.8306e-05 S2:2.6541e-05 S3:0.0000e+00
+
+## [2026-11-04 15:34:26] training
+- [Phase2 Epoch  35] roll=25 | Val Rel-MSE: 2.2246e-05 | S1:1.9274e-05 S2:2.5420e-05 S3:0.0000e+00
+
+## [2026-11-04 15:35:15] training
+- [Phase2 Epoch  36] roll=26 | Val Rel-MSE: 2.5412e-05 | S1:2.0121e-05 S2:3.1063e-05 S3:0.0000e+00
+
+## [2026-11-04 15:36:05] training
+- [Phase2 Epoch  37] roll=27 | Val Rel-MSE: 2.2093e-05 | S1:1.8578e-05 S2:2.5847e-05 S3:0.0000e+00
+
+## [2026-11-04 15:36:55] training
+- [Phase2 Epoch  38] roll=28 | Val Rel-MSE: 2.1136e-05 | S1:1.8600e-05 S2:2.3846e-05 S3:0.0000e+00
+
+## [2026-11-04 15:37:53] training
+- [Phase2 Epoch  39] roll=29 | Val Rel-MSE: 2.3272e-05 | S1:1.9880e-05 S2:2.6894e-05 S3:0.0000e+00
+
+## [2026-11-04 15:38:45] training
+- [Phase2 Epoch  40] roll=30 | Val Rel-MSE: 2.0581e-05 | S1:1.8554e-05 S2:2.2746e-05 S3:0.0000e+00
+
+## [2026-11-04 15:39:40] training
+- [Phase2 Epoch  41] roll=31 | Val Rel-MSE: 2.1949e-05 | S1:1.9141e-05 S2:2.4949e-05 S3:0.0000e+00
+
+## [2026-11-04 15:40:39] training
+- [Phase2 Epoch  42] roll=32 | Val Rel-MSE: 2.2299e-05 | S1:1.9398e-05 S2:2.5397e-05 S3:0.0000e+00
+
+## [2026-11-04 15:41:37] training
+- [Phase2 Epoch  43] roll=33 | Val Rel-MSE: 2.2949e-05 | S1:1.9790e-05 S2:2.6324e-05 S3:0.0000e+00
+
+## [2026-11-04 15:42:35] training
+- [Phase2 Epoch  44] roll=34 | Val Rel-MSE: 2.1105e-05 | S1:1.9062e-05 S2:2.3287e-05 S3:0.0000e+00
+
+## [2026-11-04 15:43:33] training
+- [Phase2 Epoch  45] roll=35 | Val Rel-MSE: 2.3236e-05 | S1:2.0078e-05 S2:2.6608e-05 S3:0.0000e+00
+
+## [2026-11-04 15:44:40] training
+- [Phase2 Epoch  46] roll=36 | Val Rel-MSE: 2.2203e-05 | S1:1.9904e-05 S2:2.4659e-05 S3:0.0000e+00
+
+## [2026-11-04 15:45:50] training
+- [Phase2 Epoch  47] roll=37 | Val Rel-MSE: 2.2700e-05 | S1:2.0248e-05 S2:2.5320e-05 S3:0.0000e+00
+
+## [2026-11-04 15:47:02] training
+- [Phase2 Epoch  48] roll=38 | Val Rel-MSE: 2.1779e-05 | S1:1.9591e-05 S2:2.4116e-05 S3:0.0000e+00
+
+## [2026-11-04 15:48:12] training
+- [Phase2 Epoch  49] roll=39 | Val Rel-MSE: 2.2250e-05 | S1:2.0110e-05 S2:2.4535e-05 S3:0.0000e+00
+
+## [2026-11-04 15:49:20] training
+- [Phase2 Epoch  50] roll=40 | Val Rel-MSE: 2.2542e-05 | S1:1.9874e-05 S2:2.5391e-05 S3:0.0000e+00
+
+## [2026-11-04 15:50:23] training
+- [Phase2 Epoch  51] roll=41 | Val Rel-MSE: 2.5110e-05 | S1:2.1568e-05 S2:2.8894e-05 S3:0.0000e+00
+
+## [2026-11-04 15:51:36] training
+- [Phase2 Epoch  52] roll=42 | Val Rel-MSE: 2.1259e-05 | S1:1.9558e-05 S2:2.3077e-05 S3:0.0000e+00
+
+## [2026-11-04 15:52:49] training
+- [Phase2 Epoch  53] roll=43 | Val Rel-MSE: 2.1941e-05 | S1:1.9982e-05 S2:2.4034e-05 S3:0.0000e+00
+
+## [2026-11-04 15:54:05] training
+- [Phase2 Epoch  54] roll=44 | Val Rel-MSE: 2.2920e-05 | S1:2.0439e-05 S2:2.5569e-05 S3:0.0000e+00
+
+## [2026-11-04 15:55:22] training
+- [Phase2 Epoch  55] roll=46 | Val Rel-MSE: 2.2197e-05 | S1:2.0059e-05 S2:2.4481e-05 S3:0.0000e+00
+
+## [2026-11-04 15:55:22] training
+- Training completed.
+
+## [2026-11-04 15:55:23] training
+- 训练完成 (2563s)
+```
+output=/home/apde/pde_project/interim report/output/runs/phase0_mgno
+```
+
+## [2026-11-04 15:55:25] action
+- 实例化检查: PASS
+```
+OK: MGNO1d input=[2, 256, 10] output=[2, 256]
+```
+
+## [2026-11-04 15:55:25] action
+- 保存快照: phase0_mgno (mgno/MGNO1d)
+```
+identity_ok=True ckpt=/home/apde/pde_project/interim report/output/runs/phase0_mgno/best_phase2.pt parent=-
+```
+
+## [2026-11-04 15:55:25] action
+- Phase 0.4: 汇总 baseline 排行
+
+## [2026-11-04 15:55:26] action
+- 实例化检查: PASS
+```
+OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+```
+
+## [2026-11-04 15:55:26] action
+- 模型身份校验通过（回退复检）：FNO1d
+
+## [2026-11-04 15:55:26] action
+- 回退到最优版本: fno
+```
+snapshot=/home/apde/pde_project/interim report/output/snapshots/phase0_fno identity_ok=True
+```
+
+## [2026-11-04 15:55:26] action
+- 🏆 Baseline 最优: fno, seg1=6.5584e-06, seg2=4.6777e-06, seg3=0.0
+
+## [2026-11-04 15:55:26] action
+- Round 1: 调度 Proposal
+
+## [2026-11-04 15:55:26] subagent_call
+- 调用 proposal
+```
+当前最优模型: fno, 指标: {"overall": 5.649e-06, "seg1": 6.5584e-06, "seg2": 4.6777e-06, "seg3": 0.0}。瓶颈: 分析 seg1/seg2/seg3 哪个是短板，提出改进方案。注意：只能改 model.py，train.py 是框架文件不可修改。
+```
+
+## [2026-11-04 15:56:12] llm_reasoning
+- 本轮方案: 诊断
+
+## [2026-11-04 15:56:14] action
+- 实例化检查: PASS
+```
+OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+```
+
+## [2026-11-04 15:56:14] action
+- 保存快照: round1_pre (fno/FNO1d)
+```
+identity_ok=True ckpt=/home/apde/pde_project/interim report/output/runs/phase0_fno/best_phase2.pt parent=phase0_fno
+```
+
+## [2026-11-04 15:56:14] subagent_call
+- 调用 dev
+```
+本轮改进方案：
+## 诊断
+
+先把指标拆开看：seg3 = 0.0，而 overall 5.649e-06 基本等于 seg1、seg2 的组合（用 RMSE 合并 ≈ 5.7e-06，非常接近），说明 **seg3 没有有效误差贡献（大概率该段解已扩散到近稳态/常数场，模型天然拟合为零误差），真正决定整体的是 seg1 和 seg2**。其中 **seg1 = 6.56e-06 明显高于 seg
+```
+
+## [2026-11-04 15:56:23] action
+- 修改 model.py: ✓ 匹配方式=exact
+```
+旧: '    def __init__(self, num_channels, modes=16, width=64, ini' → 新: '    def __init__(self, num_channels, modes=32, width=96, ini'
+```
+
+## [2026-11-04 15:56:23] action
+- 修改结果: 生效 (成功 1 / 失败 0)
+```
+hash 78d5aad9→41edee52
+```
+
+## [2026-11-04 15:56:23] action
+- Round 1 代码修改生效: 1 处 (尝试 1 次) hash 78d5aad9→41edee52
+
+## [2026-11-04 15:56:25] action
+- 实例化检查: PASS
+```
+OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+```
+
+## [2026-11-04 15:56:25] action
+- 模型身份校验通过（Round 1）：FNO1d
+
+## [2026-11-04 15:56:25] training
+- 开始训练: round1
+```
+Phase1=50eps + Phase2=100eps | cmd=/home/apde/miniconda3/bin/python3 /home/apde/pde_project/interim report/agent/train.py --train_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/train.h5 --val_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/val.h5 --save_dir /home/apde/pde_project/interim report/output/runs/round1 --model_class FNO1d --seed 42 --num_workers 4
+```
+
+## [2026-11-04 15:56:32] training
+- === Phase 1: Teacher Forcing ===
+
+## [2026-11-04 15:56:41] training
+- [Phase1 Epoch   1] Val Rel-MSE: 1.9254e-02 | S1:2.0982e-02 S2:1.7409e-02 S3:0.0000e+00
+
+## [2026-11-04 15:56:50] training
+- [Phase1 Epoch   2] Val Rel-MSE: 2.8017e-03 | S1:4.0218e-03 S2:1.4984e-03 S3:0.0000e+00
+
+## [2026-11-04 15:56:58] training
+- [Phase1 Epoch   3] Val Rel-MSE: 1.6528e-03 | S1:1.9514e-03 S2:1.3338e-03 S3:0.0000e+00
+
+## [2026-11-04 15:57:08] training
+- [Phase1 Epoch   4] Val Rel-MSE: 3.5466e-03 | S1:2.0763e-03 S2:5.1173e-03 S3:0.0000e+00
+
+## [2026-11-04 15:57:17] training
+- [Phase1 Epoch   5] Val Rel-MSE: 7.4335e-04 | S1:9.3758e-04 S2:5.3586e-04 S3:0.0000e+00
+
+## [2026-11-04 15:57:24] training
+- [Phase1 Epoch   6] Val Rel-MSE: 4.8594e-04 | S1:7.4262e-04 S2:2.1175e-04 S3:0.0000e+00
+
+## [2026-11-04 15:57:33] training
+- [Phase1 Epoch   7] Val Rel-MSE: 4.6812e-04 | S1:6.1203e-04 S2:3.1440e-04 S3:0.0000e+00
+
+## [2026-11-04 15:57:42] training
+- [Phase1 Epoch   8] Val Rel-MSE: 2.8761e-04 | S1:3.4114e-04 S2:2.3043e-04 S3:0.0000e+00
+
+## [2026-11-04 15:57:50] training
+- [Phase1 Epoch   9] Val Rel-MSE: 3.0793e-04 | S1:3.3424e-04 S2:2.7983e-04 S3:0.0000e+00
+
+## [2026-11-04 15:57:57] training
+- [Phase1 Epoch  10] Val Rel-MSE: 3.5247e-04 | S1:2.5976e-04 S2:4.5151e-04 S3:0.0000e+00
+
+## [2026-11-04 15:58:04] training
+- [Phase1 Epoch  11] Val Rel-MSE: 5.0041e-04 | S1:4.8107e-04 S2:5.2107e-04 S3:0.0000e+00
+
+## [2026-11-04 15:58:12] training
+- [Phase1 Epoch  12] Val Rel-MSE: 2.4968e-04 | S1:1.9652e-04 S2:3.0647e-04 S3:0.0000e+00
+
+## [2026-11-04 15:58:19] training
+- [Phase1 Epoch  13] Val Rel-MSE: 1.7180e-04 | S1:1.4922e-04 S2:1.9592e-04 S3:0.0000e+00
+
+## [2026-11-04 15:58:27] training
+- [Phase1 Epoch  14] Val Rel-MSE: 1.8333e-04 | S1:1.2907e-04 S2:2.4130e-04 S3:0.0000e+00
+
+## [2026-11-04 15:58:35] training
+- [Phase1 Epoch  15] Val Rel-MSE: 1.2703e-04 | S1:8.5555e-05 S2:1.7133e-04 S3:0.0000e+00
+
+## [2026-11-04 15:58:42] training
+- [Phase1 Epoch  16] Val Rel-MSE: 3.0338e-04 | S1:2.1222e-04 S2:4.0076e-04 S3:0.0000e+00
+
+## [2026-11-04 15:58:49] training
+- [Phase1 Epoch  17] Val Rel-MSE: 6.2787e-05 | S1:5.9763e-05 S2:6.6017e-05 S3:0.0000e+00
+
+## [2026-11-04 15:58:56] training
+- [Phase1 Epoch  18] Val Rel-MSE: 2.3209e-04 | S1:1.5892e-04 S2:3.1024e-04 S3:0.0000e+00
+
+## [2026-11-04 15:59:03] training
+- [Phase1 Epoch  19] Val Rel-MSE: 3.7520e-04 | S1:2.6583e-04 S2:4.9203e-04 S3:0.0000e+00
+
+## [2026-11-04 15:59:10] training
+- [Phase1 Epoch  20] Val Rel-MSE: 1.2271e-04 | S1:9.6873e-05 S2:1.5031e-04 S3:0.0000e+00
+
+## [2026-11-04 15:59:18] training
+- [Phase1 Epoch  21] Val Rel-MSE: 4.7238e-04 | S1:3.0727e-04 S2:6.4876e-04 S3:0.0000e+00
+
+## [2026-11-04 15:59:26] training
+- [Phase1 Epoch  22] Val Rel-MSE: 1.9134e-04 | S1:1.5141e-04 S2:2.3400e-04 S3:0.0000e+00
+
+## [2026-11-04 15:59:33] training
+- [Phase1 Epoch  23] Val Rel-MSE: 5.2884e-05 | S1:5.3256e-05 S2:5.2487e-05 S3:0.0000e+00
+
+## [2026-11-04 15:59:41] training
+- [Phase1 Epoch  24] Val Rel-MSE: 7.8848e-05 | S1:6.9199e-05 S2:8.9154e-05 S3:0.0000e+00
+
+## [2026-11-04 15:59:48] training
+- [Phase1 Epoch  25] Val Rel-MSE: 1.1660e-04 | S1:5.9890e-05 S2:1.7718e-04 S3:0.0000e+00
+
+## [2026-11-04 15:59:55] training
+- [Phase1 Epoch  26] Val Rel-MSE: 5.7274e-05 | S1:4.5315e-05 S2:7.0048e-05 S3:0.0000e+00
+
+## [2026-11-04 16:00:02] training
+- [Phase1 Epoch  27] Val Rel-MSE: 5.2587e-05 | S1:3.4712e-05 S2:7.1680e-05 S3:0.0000e+00
+
+## [2026-11-04 16:00:09] training
+- [Phase1 Epoch  28] Val Rel-MSE: 6.0453e-05 | S1:3.8169e-05 S2:8.4256e-05 S3:0.0000e+00
+
+## [2026-11-04 16:00:15] training
+- [Phase1 Epoch  29] Val Rel-MSE: 4.5864e-05 | S1:3.9011e-05 S2:5.3185e-05 S3:0.0000e+00
+
+## [2026-11-04 16:00:22] training
+- [Phase1 Epoch  30] Val Rel-MSE: 4.8819e-05 | S1:4.3747e-05 S2:5.4238e-05 S3:0.0000e+00
+
+## [2026-11-04 16:00:29] training
+- [Phase1 Epoch  31] Val Rel-MSE: 4.1370e-05 | S1:3.5687e-05 S2:4.7440e-05 S3:0.0000e+00
+
+## [2026-11-04 16:00:35] training
+- [Phase1 Epoch  32] Val Rel-MSE: 3.5107e-05 | S1:2.2057e-05 S2:4.9047e-05 S3:0.0000e+00
+
+## [2026-11-04 16:00:42] training
+- [Phase1 Epoch  33] Val Rel-MSE: 3.1311e-05 | S1:2.9518e-05 S2:3.3226e-05 S3:0.0000e+00
+
+## [2026-11-04 16:00:49] training
+- [Phase1 Epoch  34] Val Rel-MSE: 4.4342e-05 | S1:3.1489e-05 S2:5.8071e-05 S3:0.0000e+00
+
+## [2026-11-04 16:00:56] training
+- [Phase1 Epoch  35] Val Rel-MSE: 1.7459e-05 | S1:1.6739e-05 S2:1.8229e-05 S3:0.0000e+00
+
+## [2026-11-04 16:01:02] training
+- [Phase1 Epoch  36] Val Rel-MSE: 1.8631e-05 | S1:1.9300e-05 S2:1.7917e-05 S3:0.0000e+00
+
+## [2026-11-04 16:01:09] training
+- [Phase1 Epoch  37] Val Rel-MSE: 2.9533e-05 | S1:2.5540e-05 S2:3.3797e-05 S3:0.0000e+00
+
+## [2026-11-04 16:01:16] training
+- [Phase1 Epoch  38] Val Rel-MSE: 2.3519e-05 | S1:1.6056e-05 S2:3.1491e-05 S3:0.0000e+00
+
+## [2026-11-04 16:01:23] training
+- [Phase1 Epoch  39] Val Rel-MSE: 1.8391e-05 | S1:1.6908e-05 S2:1.9975e-05 S3:0.0000e+00
+
+## [2026-11-04 16:01:29] training
+- [Phase1 Epoch  40] Val Rel-MSE: 3.0933e-05 | S1:1.9069e-05 S2:4.3606e-05 S3:0.0000e+00
+
+## [2026-11-04 16:01:36] training
+- [Phase1 Epoch  41] Val Rel-MSE: 1.3291e-05 | S1:1.4175e-05 S2:1.2346e-05 S3:0.0000e+00
+
+## [2026-11-04 16:01:42] training
+- [Phase1 Epoch  42] Val Rel-MSE: 1.3405e-05 | S1:1.3687e-05 S2:1.3103e-05 S3:0.0000e+00
+
+## [2026-11-04 16:01:49] training
+- [Phase1 Epoch  43] Val Rel-MSE: 1.3569e-05 | S1:1.4587e-05 S2:1.2482e-05 S3:0.0000e+00
+
+## [2026-11-04 16:01:55] training
+- [Phase1 Epoch  44] Val Rel-MSE: 1.3569e-05 | S1:1.4283e-05 S2:1.2806e-05 S3:0.0000e+00
+
+## [2026-11-04 16:02:02] training
+- [Phase1 Epoch  45] Val Rel-MSE: 1.4214e-05 | S1:1.3357e-05 S2:1.5128e-05 S3:0.0000e+00
+
+## [2026-11-04 16:02:09] training
+- [Phase1 Epoch  46] Val Rel-MSE: 1.3551e-05 | S1:1.3495e-05 S2:1.3611e-05 S3:0.0000e+00
+
+## [2026-11-04 16:02:17] training
+- [Phase1 Epoch  47] Val Rel-MSE: 1.2470e-05 | S1:1.2831e-05 S2:1.2085e-05 S3:0.0000e+00
+
+## [2026-11-04 16:02:24] training
+- [Phase1 Epoch  48] Val Rel-MSE: 1.2079e-05 | S1:1.2625e-05 S2:1.1497e-05 S3:0.0000e+00
+
+## [2026-11-04 16:02:32] training
+- [Phase1 Epoch  49] Val Rel-MSE: 1.1459e-05 | S1:1.2279e-05 S2:1.0582e-05 S3:0.0000e+00
+
+## [2026-11-04 16:02:39] training
+- [Phase1 Epoch  50] Val Rel-MSE: 1.1410e-05 | S1:1.2174e-05 S2:1.0594e-05 S3:0.0000e+00
+
+## [2026-11-04 16:02:39] training
+- === Phase 2: Progressive Rollout ===
+
+## [2026-11-04 16:02:45] training
+- [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 1.3113e-05 | S1:1.3768e-05 S2:1.2414e-05 S3:0.0000e+00
+
+## [2026-11-04 16:02:53] training
+- [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 1.9251e-05 | S1:1.7140e-05 S2:2.1506e-05 S3:0.0000e+00
+
+## [2026-11-04 16:03:00] training
+- [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 1.6443e-05 | S1:1.5167e-05 S2:1.7805e-05 S3:0.0000e+00
+
+## [2026-11-04 16:03:07] training
+- [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 1.1738e-05 | S1:1.2190e-05 S2:1.1254e-05 S3:0.0000e+00
+
+## [2026-11-04 16:03:14] training
+- [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 1.2314e-05 | S1:1.2513e-05 S2:1.2101e-05 S3:0.0000e+00
+
+## [2026-11-04 16:03:21] training
+- [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 2.5086e-05 | S1:2.2633e-05 S2:2.7707e-05 S3:0.0000e+00
+
+## [2026-11-04 16:03:28] training
+- [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 2.1148e-05 | S1:1.9737e-05 S2:2.2656e-05 S3:0.0000e+00
+
+## [2026-11-04 16:03:35] training
+- [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 1.2142e-05 | S1:1.2093e-05 S2:1.2195e-05 S3:0.0000e+00
+
+## [2026-11-04 16:03:42] training
+- [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 1.4659e-05 | S1:1.2767e-05 S2:1.6679e-05 S3:0.0000e+00
+
+## [2026-11-04 16:03:49] training
+- [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 1.2940e-05 | S1:1.2943e-05 S2:1.2937e-05 S3:0.0000e+00
+
+## [2026-11-04 16:03:56] training
+- [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 1.5926e-05 | S1:1.3486e-05 S2:1.8533e-05 S3:0.0000e+00
+
+## [2026-11-04 16:04:05] training
+- [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 3.1251e-05 | S1:1.9180e-05 S2:4.4146e-05 S3:0.0000e+00
+
+## [2026-11-04 16:04:15] training
+- [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 1.8932e-05 | S1:1.4901e-05 S2:2.3237e-05 S3:0.0000e+00
+
+## [2026-11-04 16:04:26] training
+- [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 1.0843e-05 | S1:1.0924e-05 S2:1.0757e-05 S3:0.0000e+00
+
+## [2026-11-04 16:04:38] training
+- [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 1.0492e-05 | S1:1.0716e-05 S2:1.0252e-05 S3:0.0000e+00
+
+## [2026-11-04 16:04:52] training
+- [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 9.4681e-06 | S1:1.0202e-05 S2:8.6843e-06 S3:0.0000e+00
+
+## [2026-11-04 16:05:08] training
+- [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 1.1016e-05 | S1:1.1305e-05 S2:1.0708e-05 S3:0.0000e+00
+
+## [2026-11-04 16:05:25] training
+- [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 9.1758e-06 | S1:1.0068e-05 S2:8.2227e-06 S3:0.0000e+00
+
+## [2026-11-04 16:05:48] training
+- [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 9.0560e-06 | S1:9.8489e-06 S2:8.2090e-06 S3:0.0000e+00
+
+## [2026-11-04 16:06:09] training
+- [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 9.6709e-06 | S1:1.0024e-05 S2:9.2935e-06 S3:0.0000e+00
+
+## [2026-11-04 16:06:33] training
+- [Phase2 Epoch  21] roll=11 | Val Rel-MSE: 9.1172e-06 | S1:9.8220e-06 S2:8.3643e-06 S3:0.0000e+00
+
+## [2026-11-04 16:06:56] training
+- [Phase2 Epoch  22] roll=12 | Val Rel-MSE: 1.1104e-05 | S1:1.0700e-05 S2:1.1534e-05 S3:0.0000e+00
+
+## [2026-11-04 16:07:21] training
+- [Phase2 Epoch  23] roll=13 | Val Rel-MSE: 9.8157e-06 | S1:9.9076e-06 S2:9.7175e-06 S3:0.0000e+00
+
+## [2026-11-04 16:07:51] training
+- [Phase2 Epoch  24] roll=14 | Val Rel-MSE: 8.7195e-06 | S1:9.4980e-06 S2:7.8879e-06 S3:0.0000e+00
+
+## [2026-11-04 16:08:18] training
+- [Phase2 Epoch  25] roll=15 | Val Rel-MSE: 1.0253e-05 | S1:1.0425e-05 S2:1.0069e-05 S3:0.0000e+00
+
+## [2026-11-04 16:08:47] training
+- [Phase2 Epoch  26] roll=16 | Val Rel-MSE: 9.1197e-06 | S1:9.7111e-06 S2:8.4879e-06 S3:0.0000e+00
+
+## [2026-11-04 16:09:17] training
+- [Phase2 Epoch  27] roll=17 | Val Rel-MSE: 9.6182e-06 | S1:9.9209e-06 S2:9.2949e-06 S3:0.0000e+00
+
+## [2026-11-04 16:09:47] training
+- [Phase2 Epoch  28] roll=18 | Val Rel-MSE: 8.7469e-06 | S1:9.3595e-06 S2:8.0925e-06 S3:0.0000e+00
+
+## [2026-11-04 16:10:20] training
+- [Phase2 Epoch  29] roll=19 | Val Rel-MSE: 9.5076e-06 | S1:9.8523e-06 S2:9.1395e-06 S3:0.0000e+00
+
+## [2026-11-04 16:10:54] training
+- [Phase2 Epoch  30] roll=20 | Val Rel-MSE: 8.4847e-06 | S1:9.2287e-06 S2:7.6899e-06 S3:0.0000e+00
+
+## [2026-11-04 16:11:27] training
+- [Phase2 Epoch  31] roll=21 | Val Rel-MSE: 9.4798e-06 | S1:9.4800e-06 S2:9.4796e-06 S3:0.0000e+00
+
+## [2026-11-04 16:12:03] training
+- [Phase2 Epoch  32] roll=22 | Val Rel-MSE: 8.3665e-06 | S1:9.1955e-06 S2:7.4808e-06 S3:0.0000e+00
+
+## [2026-11-04 16:12:41] training
+- [Phase2 Epoch  33] roll=23 | Val Rel-MSE: 8.2810e-06 | S1:8.9955e-06 S2:7.5179e-06 S3:0.0000e+00
+
+## [2026-11-04 16:13:20] training
+- [Phase2 Epoch  34] roll=24 | Val Rel-MSE: 8.5139e-06 | S1:9.0510e-06 S2:7.9401e-06 S3:0.0000e+00
+
+## [2026-11-04 16:14:00] training
+- [Phase2 Epoch  35] roll=25 | Val Rel-MSE: 8.2032e-06 | S1:8.9521e-06 S2:7.4032e-06 S3:0.0000e+00
+
+## [2026-11-04 16:14:43] training
+- [Phase2 Epoch  36] roll=26 | Val Rel-MSE: 8.8748e-06 | S1:9.3401e-06 S2:8.3777e-06 S3:0.0000e+00
+
+## [2026-11-04 16:15:27] training
+- [Phase2 Epoch  37] roll=27 | Val Rel-MSE: 8.0618e-06 | S1:8.7378e-06 S2:7.3397e-06 S3:0.0000e+00
+
+## [2026-11-04 16:16:11] training
+- [Phase2 Epoch  38] roll=28 | Val Rel-MSE: 7.9958e-06 | S1:8.9419e-06 S2:6.9852e-06 S3:0.0000e+00
+
+## [2026-11-04 16:16:54] training
+- [Phase2 Epoch  39] roll=29 | Val Rel-MSE: 7.8246e-06 | S1:8.6758e-06 S2:6.9152e-06 S3:0.0000e+00
+
+## [2026-11-04 16:17:41] training
+- [Phase2 Epoch  40] roll=30 | Val Rel-MSE: 7.8049e-06 | S1:8.5819e-06 S2:6.9750e-06 S3:0.0000e+00
+
+## [2026-11-04 16:18:31] training
+- [Phase2 Epoch  41] roll=31 | Val Rel-MSE: 7.6124e-06 | S1:8.4026e-06 S2:6.7683e-06 S3:0.0000e+00
+
+## [2026-11-04 16:19:20] training
+- [Phase2 Epoch  42] roll=32 | Val Rel-MSE: 7.6684e-06 | S1:8.4651e-06 S2:6.8174e-06 S3:0.0000e+00
+
+## [2026-11-04 16:20:09] training
+- [Phase2 Epoch  43] roll=33 | Val Rel-MSE: 7.7850e-06 | S1:8.4435e-06 S2:7.0816e-06 S3:0.0000e+00
+
+## [2026-11-04 16:21:02] training
+- [Phase2 Epoch  44] roll=34 | Val Rel-MSE: 7.4787e-06 | S1:8.4574e-06 S2:6.4334e-06 S3:0.0000e+00
+
+## [2026-11-04 16:21:53] training
+- [Phase2 Epoch  45] roll=35 | Val Rel-MSE: 7.3100e-06 | S1:8.1909e-06 S2:6.3689e-06 S3:0.0000e+00
+
+## [2026-11-04 16:22:47] training
+- [Phase2 Epoch  46] roll=36 | Val Rel-MSE: 8.7436e-06 | S1:9.2450e-06 S2:8.2079e-06 S3:0.0000e+00
+
+## [2026-11-04 16:23:43] training
+- [Phase2 Epoch  47] roll=37 | Val Rel-MSE: 7.2579e-06 | S1:8.2059e-06 S2:6.2453e-06 S3:0.0000e+00
+
+## [2026-11-04 16:24:40] training
+- [Phase2 Epoch  48] roll=38 | Val Rel-MSE: 7.4676e-06 | S1:8.2679e-06 S2:6.6128e-06 S3:0.0000e+00
+
+## [2026-11-04 16:25:38] training
+- [Phase2 Epoch  49] roll=39 | Val Rel-MSE: 7.2966e-06 | S1:8.1751e-06 S2:6.3583e-06 S3:0.0000e+00
+
+## [2026-11-04 16:26:39] training
+- [Phase2 Epoch  50] roll=40 | Val Rel-MSE: 7.3557e-06 | S1:8.1786e-06 S2:6.4766e-06 S3:0.0000e+00
+
+## [2026-11-04 16:27:50] training
+- [Phase2 Epoch  51] roll=41 | Val Rel-MSE: 7.1078e-06 | S1:8.0345e-06 S2:6.1179e-06 S3:0.0000e+00
+
+## [2026-11-04 16:29:03] training
+- [Phase2 Epoch  52] roll=42 | Val Rel-MSE: 7.1998e-06 | S1:7.9378e-06 S2:6.4115e-06 S3:0.0000e+00
+
+## [2026-11-04 16:30:11] training
+- [Phase2 Epoch  53] roll=43 | Val Rel-MSE: 6.9899e-06 | S1:7.9198e-06 S2:5.9966e-06 S3:0.0000e+00
+
+## [2026-11-04 16:31:19] training
+- [Phase2 Epoch  54] roll=44 | Val Rel-MSE: 7.2360e-06 | S1:7.9383e-06 S2:6.4858e-06 S3:0.0000e+00
+
+## [2026-11-04 16:32:31] training
+- [Phase2 Epoch  55] roll=46 | Val Rel-MSE: 7.6929e-06 | S1:8.0396e-06 S2:7.3225e-06 S3:0.0000e+00
+
+## [2026-11-04 16:33:45] training
+- [Phase2 Epoch  56] roll=47 | Val Rel-MSE: 6.8030e-06 | S1:7.7894e-06 S2:5.7492e-06 S3:0.0000e+00
+
+## [2026-11-04 16:34:59] training
+- [Phase2 Epoch  57] roll=48 | Val Rel-MSE: 6.9211e-06 | S1:7.8626e-06 S2:5.9154e-06 S3:0.0000e+00
+
+## [2026-11-04 16:36:15] training
+- [Phase2 Epoch  58] roll=49 | Val Rel-MSE: 6.8499e-06 | S1:7.6781e-06 S2:5.9654e-06 S3:0.0000e+00
+
+## [2026-11-04 16:37:32] training
+- [Phase2 Epoch  59] roll=50 | Val Rel-MSE: 6.7008e-06 | S1:7.7067e-06 S2:5.6263e-06 S3:0.0000e+00
+
+## [2026-11-04 16:38:51] training
+- [Phase2 Epoch  60] roll=52 | Val Rel-MSE: 6.9230e-06 | S1:7.6044e-06 S2:6.1952e-06 S3:0.0000e+00
+
+## [2026-11-04 16:40:13] training
+- [Phase2 Epoch  61] roll=53 | Val Rel-MSE: 7.2283e-06 | S1:7.7692e-06 S2:6.6506e-06 S3:0.0000e+00
+
+## [2026-11-04 16:41:37] training
+- [Phase2 Epoch  62] roll=54 | Val Rel-MSE: 6.4992e-06 | S1:7.4521e-06 S2:5.4812e-06 S3:0.0000e+00
+
+## [2026-11-04 16:43:00] training
+- [Phase2 Epoch  63] roll=55 | Val Rel-MSE: 6.5052e-06 | S1:7.4064e-06 S2:5.5426e-06 S3:0.0000e+00
+
+## [2026-11-04 16:44:27] training
+- [Phase2 Epoch  64] roll=56 | Val Rel-MSE: 6.5138e-06 | S1:7.4170e-06 S2:5.5490e-06 S3:0.0000e+00
+
+## [2026-11-04 16:45:55] training
+- [Phase2 Epoch  65] roll=58 | Val Rel-MSE: 6.4990e-06 | S1:7.4324e-06 S2:5.5019e-06 S3:0.0000e+00
+
+## [2026-11-04 16:47:26] training
+- [Phase2 Epoch  66] roll=59 | Val Rel-MSE: 6.3113e-06 | S1:7.3089e-06 S2:5.2457e-06 S3:0.0000e+00
+
+## [2026-11-04 16:49:06] training
+- [Phase2 Epoch  67] roll=60 | Val Rel-MSE: 6.3283e-06 | S1:7.3146e-06 S2:5.2747e-06 S3:0.0000e+00
+
+## [2026-11-04 16:50:41] training
+- [Phase2 Epoch  68] roll=61 | Val Rel-MSE: 6.5997e-06 | S1:7.3573e-06 S2:5.7905e-06 S3:0.0000e+00
+
+## [2026-11-04 16:52:14] training
+- [Phase2 Epoch  69] roll=62 | Val Rel-MSE: 6.6469e-06 | S1:7.2710e-06 S2:5.9802e-06 S3:0.0000e+00
+
+## [2026-11-04 16:53:51] training
+- [Phase2 Epoch  70] roll=64 | Val Rel-MSE: 6.1299e-06 | S1:7.1160e-06 S2:5.0765e-06 S3:0.0000e+00
+
+## [2026-11-04 16:55:30] training
+- [Phase2 Epoch  71] roll=65 | Val Rel-MSE: 6.1266e-06 | S1:7.1139e-06 S2:5.0719e-06 S3:0.0000e+00
+
+## [2026-11-04 16:57:12] training
+- [Phase2 Epoch  72] roll=66 | Val Rel-MSE: 6.1330e-06 | S1:7.1017e-06 S2:5.0983e-06 S3:0.0000e+00
+
+## [2026-11-04 16:58:44] training
+- [Phase2 Epoch  73] roll=67 | Val Rel-MSE: 6.0630e-06 | S1:7.0575e-06 S2:5.0007e-06 S3:0.0000e+00
+
+## [2026-11-04 17:00:15] training
+- [Phase2 Epoch  74] roll=68 | Val Rel-MSE: 6.0789e-06 | S1:7.0512e-06 S2:5.0403e-06 S3:0.0000e+00
+
+## [2026-11-04 17:01:47] training
+- [Phase2 Epoch  75] roll=70 | Val Rel-MSE: 6.0614e-06 | S1:7.0154e-06 S2:5.0423e-06 S3:0.0000e+00
+
+## [2026-11-04 17:03:21] training
+- [Phase2 Epoch  76] roll=71 | Val Rel-MSE: 6.0272e-06 | S1:7.0069e-06 S2:4.9807e-06 S3:0.0000e+00
+
+## [2026-11-04 17:04:55] training
+- [Phase2 Epoch  77] roll=72 | Val Rel-MSE: 6.1060e-06 | S1:7.0085e-06 S2:5.1419e-06 S3:0.0000e+00
+
+## [2026-11-04 17:06:35] training
+- [Phase2 Epoch  78] roll=73 | Val Rel-MSE: 6.0625e-06 | S1:6.9860e-06 S2:5.0760e-06 S3:0.0000e+00
+
+## [2026-11-04 17:08:12] training
+- [Phase2 Epoch  79] roll=74 | Val Rel-MSE: 5.9580e-06 | S1:6.9117e-06 S2:4.9393e-06 S3:0.0000e+00
+
+## [2026-11-04 17:09:52] training
+- [Phase2 Epoch  80] roll=76 | Val Rel-MSE: 6.0907e-06 | S1:6.9957e-06 S2:5.1240e-06 S3:0.0000e+00
+
+## [2026-11-04 17:11:33] training
+- [Phase2 Epoch  81] roll=77 | Val Rel-MSE: 5.8996e-06 | S1:6.8621e-06 S2:4.8714e-06 S3:0.0000e+00
+
+## [2026-11-04 17:13:15] training
+- [Phase2 Epoch  82] roll=78 | Val Rel-MSE: 5.9024e-06 | S1:6.8592e-06 S2:4.8804e-06 S3:0.0000e+00
+
+## [2026-11-04 17:14:57] training
+- [Phase2 Epoch  83] roll=79 | Val Rel-MSE: 5.8533e-06 | S1:6.8190e-06 S2:4.8217e-06 S3:0.0000e+00
+
+## [2026-11-04 17:16:40] training
+- [Phase2 Epoch  84] roll=80 | Val Rel-MSE: 5.8122e-06 | S1:6.7821e-06 S2:4.7761e-06 S3:0.0000e+00
+
+## [2026-11-04 17:18:26] training
+- [Phase2 Epoch  85] roll=82 | Val Rel-MSE: 5.7889e-06 | S1:6.7515e-06 S2:4.7606e-06 S3:0.0000e+00
+
+## [2026-11-04 17:20:14] training
+- [Phase2 Epoch  86] roll=83 | Val Rel-MSE: 5.7651e-06 | S1:6.7259e-06 S2:4.7387e-06 S3:0.0000e+00
+
+## [2026-11-04 17:22:06] training
+- [Phase2 Epoch  87] roll=84 | Val Rel-MSE: 5.7475e-06 | S1:6.7060e-06 S2:4.7236e-06 S3:0.0000e+00
+
+## [2026-11-04 17:23:57] training
+- [Phase2 Epoch  88] roll=85 | Val Rel-MSE: 5.7269e-06 | S1:6.6754e-06 S2:4.7137e-06 S3:0.0000e+00
+
+## [2026-11-04 17:25:43] training
+- [Phase2 Epoch  89] roll=86 | Val Rel-MSE: 5.7128e-06 | S1:6.6580e-06 S2:4.7031e-06 S3:0.0000e+00
+
+## [2026-11-04 17:27:25] training
+- [Phase2 Epoch  90] roll=88 | Val Rel-MSE: 5.6770e-06 | S1:6.6131e-06 S2:4.6770e-06 S3:0.0000e+00
+
+## [2026-11-04 17:29:10] training
+- [Phase2 Epoch  91] roll=89 | Val Rel-MSE: 5.7033e-06 | S1:6.6046e-06 S2:4.7405e-06 S3:0.0000e+00
+
+## [2026-11-04 17:30:54] training
+- [Phase2 Epoch  92] roll=90 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 17:30:59] training
+- [Phase2 Epoch  93] roll=91 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 17:31:04] training
+- [Phase2 Epoch  94] roll=92 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 17:31:08] training
+- [Phase2 Epoch  95] roll=94 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 17:31:13] training
+- [Phase2 Epoch  96] roll=95 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 17:31:17] training
+- [Phase2 Epoch  97] roll=96 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 17:31:21] training
+- [Phase2 Epoch  98] roll=97 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 17:31:26] training
+- [Phase2 Epoch  99] roll=98 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 17:31:31] training
+- [Phase2 Epoch 100] roll=100 | Val Rel-MSE: 5.6490e-06 | S1:6.5584e-06 S2:4.6777e-06 S3:0.0000e+00
+
+## [2026-11-04 17:31:31] training
+- Training completed.
+
+## [2026-11-04 17:31:31] training
+- 训练完成 (5706s)
+```
+output=/home/apde/pde_project/interim report/output/runs/round1
+```
+
+## [2026-11-04 17:31:31] eval
+- Round 1 判定: STAGNANT（程序）
+```
+{"verdict": "STAGNANT", "sigma": 0.05, "sigma_source": "assumed", "threshold": 0.1, "overall": {"baseline": 5.649e-06, "current": 5.649e-06, "r": 0.0}, "segments": {"seg1": {"baseline": 6.5584e-06, "current": 6.5584e-06, "r": 0.0, "usable": true, "judgment": "持平"}, "seg2": {"baseline": 4.6777e-06, "current": 4.6777e-06, "r": 0.0, "usable": true, "judgment": "持平"}, "seg3": {"baseline": 0.0, "current": 0.0, "r": null, "usable": false, "judgment": "不可判定", "reason": "baseline 为 0，该段无区分度"}}, "valid_segments": ["seg1", "seg2"], "reasons": ["所有有效段变化均在阈值 10.0% 以内，视为噪声", "跳过不可判定的段: seg3（baseline 为 0 或缺失）", "⚠ sigma=0.05 为假定值，未用重复实验标定"]}
+```
+
+## [2026-11-04 17:31:31] subagent_call
+- 调用 eval_reflection
+```
+判定已由程序算出，你必须接受，不得修改。
+程序判定: STAGNANT
+判定依据: verdict=STAGNANT | overall 5.649e-06→5.649e-06 | sigma=0.05(assumed) | thr=0.1 | seg1:+0.0% | seg2:+0.0% | seg3:n/a
+阈值: 2*sigma = 10.0%（sigma=0.05，来源=assumed）
+```
+
+## [2026-11-04 17:31:44] eval
+- Round 1 解释
+```
+## 一、指标与 baseline 逐位相同，并非统计意义上的停滞
+
+本轮三个指标与 baseline 完全一致：overall 5.649e-06→5.649e-06，seg1 6.5584e-06→6.5584e-06，seg2 4.6777e-06→4.6777e-06，变化率 +0.0%。这种在 7 位有效数字上完全相同的现象，不可能来自训练随机性或收敛波动；正常重训即使不动超参，overall 通常也会有 1e-8~1e-7 量级的抖动。因此，最直接的物理解释是：**这一轮评估取到的仍是指向同一个 `best_phase2.pt` 的权重**——R1 的假说是“诊断”，代码只改了 1 处，而且极可能落在日志或评估口径（如分段统计、打印路径）上，没有触及模型的正向计算图与优化器；或者训练虽然跑满 5706s，但 checkpoint 写入路径或挑选逻辑（按 overall 最优保留）没有采纳新权重。换句话说，这不是“改了什么但没效果”，而是“没有真正改变模型就再评估了一遍”，数值上的完全不变正是这一点的证据而非噪声证据。
+
+分段来看：seg1（短时）6.5584e-06 明显高
+```
+
+## [2026-11-04 17:31:44] action
+- Round 2: 调度 Proposal
+
+## [2026-11-04 17:31:44] subagent_call
+- 调用 proposal
+```
+当前最优模型: fno, 指标: {"overall": 5.649e-06, "seg1": 6.5584e-06, "seg2": 4.6777e-06, "seg3": 0.0}。瓶颈: 分析 seg1/seg2/seg3 哪个是短板，提出改进方案。注意：只能改 model.py，train.py 是框架文件不可修改。
+```
+
+## [2026-11-04 17:32:05] llm_reasoning
+- 本轮方案: 诊断
+
+## [2026-11-04 17:32:06] action
+- 实例化检查: PASS
+```
+OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+```
+
+## [2026-11-04 17:32:06] action
+- 保存快照: round2_pre (fno/FNO1d)
+```
+identity_ok=True ckpt=/home/apde/pde_project/interim report/output/runs/phase0_fno/best_phase2.pt parent=phase0_fno
+```
+
+## [2026-11-04 17:32:06] subagent_call
+- 调用 dev
+```
+本轮改进方案：
+## 诊断
+
+先看清实际指标，别被“seg3 为短板”的直觉误导。当前 fno 的三段是 seg1=6.56e-6、seg2=4.68e-6、seg3=0.0，**全部落在 ~1e-6 量级**，这已经不是“哪段发散”的问题，而是三段基本都贴到了这套 1D diffusion-sorption 数据的可分辨误差底。严格按数值排序，**seg1（早期/初始过渡段）是名义上的短板**（
+```
+
+## [2026-11-04 17:32:16] action
+- 修改 model.py: ✓ 匹配方式=exact
+```
+旧: '        self.w0 = nn.Conv1d(self.width, self.width, 1)\n     ' → 新: '        self.w0 = nn.Conv1d(self.width, self.width, 1)\n     '
+```
+
+## [2026-11-04 17:32:16] action
+- 修改 model.py: ✗ 无法定位（ambiguous(3)）
+```
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x
+```
+
+## [2026-11-04 17:32:16] action
+- 修改 model.py: ✗ 无法定位（ambiguous(3)）
+```
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x
+```
+
+## [2026-11-04 17:32:16] action
+- 修改 model.py: ✗ 无法定位（ambiguous(3)）
+```
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x
+```
+
+## [2026-11-04 17:32:16] action
+- 修改 model.py: ✗ 无法定位（ambiguous(2)）
+```
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+
+        
+```
+
+## [2026-11-04 17:32:16] action
+- 修改结果: 无效 (成功 1 / 失败 4)
+```
+hash 41edee52→732ec9b5
+```
+
+## [2026-11-04 17:32:16] action
+- Round 2 第 1 次修改无效（4 处修改失败），重试
+
+## [2026-11-04 17:32:18] action
+- 实例化检查: PASS
+```
+OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+```
+
+## [2026-11-04 17:32:18] action
+- 模型身份校验通过（回退复检）：FNO1d
+
+## [2026-11-04 17:32:18] action
+- 回退到最优版本: fno
+```
+snapshot=/home/apde/pde_project/interim report/output/snapshots/phase0_fno identity_ok=True
+```
+
+## [2026-11-04 17:32:18] subagent_call
+- 调用 dev
+```
+本轮改进方案：
+## 诊断
+
+先看清实际指标，别被“seg3 为短板”的直觉误导。当前 fno 的三段是 seg1=6.56e-6、seg2=4.68e-6、seg3=0.0，**全部落在 ~1e-6 量级**，这已经不是“哪段发散”的问题，而是三段基本都贴到了这套 1D diffusion-sorption 数据的可分辨误差底。严格按数值排序，**seg1（早期/初始过渡段）是名义上的短板**（
+```
+
+## [2026-11-04 17:32:34] action
+- 修改 model.py: ✓ 匹配方式=exact
+```
+旧: '        self.w0 = nn.Conv1d(self.width, self.width, 1)\n     ' → 新: '        self.w0 = nn.Conv1d(self.width, self.width, 1)\n     '
+```
+
+## [2026-11-04 17:32:34] action
+- 修改 model.py: ✓ 匹配方式=exact
+```
+旧: '    def forward(self, x, grid):\n        # x dim = [b, x1, t*' → 新: '    def forward(self, x, grid):\n        # x dim = [b, x1, t*'
+```
+
+## [2026-11-04 17:32:34] action
+- 修改结果: 生效 (成功 2 / 失败 0)
+```
+hash 78d5aad9→6aacd997
+```
+
+## [2026-11-04 17:32:34] action
+- Round 2 代码修改生效: 2 处 (尝试 2 次) hash 78d5aad9→6aacd997
+
+## [2026-11-04 17:32:36] action
+- 实例化检查: PASS
+```
+OK: FNO1d input=[2, 256, 10] output=[2, 256, 1, 1]
+```
+
+## [2026-11-04 17:32:36] action
+- 模型身份校验通过（Round 2）：FNO1d
+
+## [2026-11-04 17:32:36] training
+- 开始训练: round2
+```
+Phase1=50eps + Phase2=100eps | cmd=/home/apde/miniconda3/bin/python3 /home/apde/pde_project/interim report/agent/train.py --train_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/train.h5 --val_data /home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/val.h5 --save_dir /home/apde/pde_project/interim report/output/runs/round2 --model_class FNO1d --seed 42 --num_workers 4
+```
+
+## [2026-11-04 17:32:41] training
+- === Phase 1: Teacher Forcing ===
+
+## [2026-11-04 17:32:48] training
+- [Phase1 Epoch   1] Val Rel-MSE: 6.3566e-03 | S1:8.0561e-03 S2:4.5413e-03 S3:0.0000e+00
+
+## [2026-11-04 17:32:55] training
+- [Phase1 Epoch   2] Val Rel-MSE: 1.5012e-03 | S1:2.0098e-03 S2:9.5783e-04 S3:0.0000e+00
+
+## [2026-11-04 17:33:02] training
+- [Phase1 Epoch   3] Val Rel-MSE: 8.7476e-04 | S1:1.0554e-03 S2:6.8177e-04 S3:0.0000e+00
+
+## [2026-11-04 17:33:09] training
+- [Phase1 Epoch   4] Val Rel-MSE: 8.8630e-04 | S1:9.3730e-04 S2:8.3184e-04 S3:0.0000e+00
+
+## [2026-11-04 17:33:16] training
+- [Phase1 Epoch   5] Val Rel-MSE: 3.9467e-04 | S1:6.0107e-04 S2:1.7419e-04 S3:0.0000e+00
+
+## [2026-11-04 17:33:22] training
+- [Phase1 Epoch   6] Val Rel-MSE: 3.0943e-04 | S1:4.7099e-04 S2:1.3686e-04 S3:0.0000e+00
+
+## [2026-11-04 17:33:29] training
+- [Phase1 Epoch   7] Val Rel-MSE: 2.2702e-04 | S1:3.4131e-04 S2:1.0493e-04 S3:0.0000e+00
+
+## [2026-11-04 17:33:36] training
+- [Phase1 Epoch   8] Val Rel-MSE: 2.0933e-04 | S1:2.1928e-04 S2:1.9870e-04 S3:0.0000e+00
+
+## [2026-11-04 17:33:42] training
+- [Phase1 Epoch   9] Val Rel-MSE: 1.1964e-04 | S1:1.4818e-04 S2:8.9150e-05 S3:0.0000e+00
+
+## [2026-11-04 17:33:49] training
+- [Phase1 Epoch  10] Val Rel-MSE: 1.6879e-04 | S1:1.5078e-04 S2:1.8803e-04 S3:0.0000e+00
+
+## [2026-11-04 17:33:56] training
+- [Phase1 Epoch  11] Val Rel-MSE: 1.2111e-04 | S1:1.3266e-04 S2:1.0876e-04 S3:0.0000e+00
+
+## [2026-11-04 17:34:03] training
+- [Phase1 Epoch  12] Val Rel-MSE: 1.2419e-04 | S1:8.4057e-05 S2:1.6706e-04 S3:0.0000e+00
+
+## [2026-11-04 17:34:10] training
+- [Phase1 Epoch  13] Val Rel-MSE: 2.8935e-04 | S1:1.9251e-04 S2:3.9279e-04 S3:0.0000e+00
+
+## [2026-11-04 17:34:17] training
+- [Phase1 Epoch  14] Val Rel-MSE: 5.5930e-05 | S1:5.6471e-05 S2:5.5351e-05 S3:0.0000e+00
+
+## [2026-11-04 17:34:23] training
+- [Phase1 Epoch  15] Val Rel-MSE: 8.8502e-05 | S1:7.2002e-05 S2:1.0613e-04 S3:0.0000e+00
+
+## [2026-11-04 17:34:30] training
+- [Phase1 Epoch  16] Val Rel-MSE: 9.7474e-05 | S1:1.0564e-04 S2:8.8751e-05 S3:0.0000e+00
+
+## [2026-11-04 17:34:37] training
+- [Phase1 Epoch  17] Val Rel-MSE: 2.1423e-04 | S1:1.5449e-04 S2:2.7804e-04 S3:0.0000e+00
+
+## [2026-11-04 17:34:44] training
+- [Phase1 Epoch  18] Val Rel-MSE: 4.5773e-05 | S1:5.3748e-05 S2:3.7254e-05 S3:0.0000e+00
+
+## [2026-11-04 17:34:51] training
+- [Phase1 Epoch  19] Val Rel-MSE: 1.6552e-04 | S1:1.2802e-04 S2:2.0557e-04 S3:0.0000e+00
+
+## [2026-11-04 17:34:57] training
+- [Phase1 Epoch  20] Val Rel-MSE: 2.0481e-04 | S1:1.1542e-04 S2:3.0029e-04 S3:0.0000e+00
+
+## [2026-11-04 17:35:04] training
+- [Phase1 Epoch  21] Val Rel-MSE: 1.4357e-04 | S1:1.0528e-04 S2:1.8448e-04 S3:0.0000e+00
+
+## [2026-11-04 17:35:11] training
+- [Phase1 Epoch  22] Val Rel-MSE: 3.8874e-05 | S1:3.1678e-05 S2:4.6562e-05 S3:0.0000e+00
+
+## [2026-11-04 17:35:17] training
+- [Phase1 Epoch  23] Val Rel-MSE: 3.8689e-05 | S1:3.6991e-05 S2:4.0504e-05 S3:0.0000e+00
+
+## [2026-11-04 17:35:24] training
+- [Phase1 Epoch  24] Val Rel-MSE: 5.4649e-05 | S1:3.8666e-05 S2:7.1722e-05 S3:0.0000e+00
+
+## [2026-11-04 17:35:31] training
+- [Phase1 Epoch  25] Val Rel-MSE: 4.4217e-05 | S1:3.2696e-05 S2:5.6524e-05 S3:0.0000e+00
+
+## [2026-11-04 17:35:38] training
+- [Phase1 Epoch  26] Val Rel-MSE: 2.7190e-05 | S1:1.9550e-05 S2:3.5350e-05 S3:0.0000e+00
+
+## [2026-11-04 17:35:44] training
+- [Phase1 Epoch  27] Val Rel-MSE: 2.0093e-05 | S1:1.7036e-05 S2:2.3358e-05 S3:0.0000e+00
+
+## [2026-11-04 17:35:51] training
+- [Phase1 Epoch  28] Val Rel-MSE: 3.7006e-05 | S1:2.3358e-05 S2:5.1585e-05 S3:0.0000e+00
+
+## [2026-11-04 17:35:58] training
+- [Phase1 Epoch  29] Val Rel-MSE: 2.9658e-05 | S1:2.6415e-05 S2:3.3123e-05 S3:0.0000e+00
+
+## [2026-11-04 17:36:04] training
+- [Phase1 Epoch  30] Val Rel-MSE: 3.1516e-05 | S1:3.2187e-05 S2:3.0800e-05 S3:0.0000e+00
+
+## [2026-11-04 17:36:11] training
+- [Phase1 Epoch  31] Val Rel-MSE: 5.9809e-05 | S1:4.0800e-05 S2:8.0115e-05 S3:0.0000e+00
+
+## [2026-11-04 17:36:18] training
+- [Phase1 Epoch  32] Val Rel-MSE: 1.1042e-05 | S1:1.2041e-05 S2:9.9752e-06 S3:0.0000e+00
+
+## [2026-11-04 17:36:24] training
+- [Phase1 Epoch  33] Val Rel-MSE: 1.5676e-05 | S1:1.4798e-05 S2:1.6614e-05 S3:0.0000e+00
+
+## [2026-11-04 17:36:30] training
+- [Phase1 Epoch  34] Val Rel-MSE: 3.1800e-05 | S1:2.2130e-05 S2:4.2130e-05 S3:0.0000e+00
+
+## [2026-11-04 17:36:37] training
+- [Phase1 Epoch  35] Val Rel-MSE: 2.2838e-05 | S1:1.4705e-05 S2:3.1525e-05 S3:0.0000e+00
+
+## [2026-11-04 17:36:43] training
+- [Phase1 Epoch  36] Val Rel-MSE: 1.8577e-05 | S1:1.6584e-05 S2:2.0705e-05 S3:0.0000e+00
+
+## [2026-11-04 17:36:50] training
+- [Phase1 Epoch  37] Val Rel-MSE: 1.9046e-05 | S1:1.5661e-05 S2:2.2662e-05 S3:0.0000e+00
+
+## [2026-11-04 17:36:56] training
+- [Phase1 Epoch  38] Val Rel-MSE: 1.7093e-05 | S1:1.1449e-05 S2:2.3121e-05 S3:0.0000e+00
+
+## [2026-11-04 17:37:03] training
+- [Phase1 Epoch  39] Val Rel-MSE: 1.6126e-05 | S1:1.2520e-05 S2:1.9977e-05 S3:0.0000e+00
+
+## [2026-11-04 17:37:10] training
+- [Phase1 Epoch  40] Val Rel-MSE: 3.2196e-05 | S1:1.6624e-05 S2:4.8830e-05 S3:0.0000e+00
+
+## [2026-11-04 17:37:16] training
+- [Phase1 Epoch  41] Val Rel-MSE: 1.0333e-05 | S1:1.0668e-05 S2:9.9756e-06 S3:0.0000e+00
+
+## [2026-11-04 17:37:23] training
+- [Phase1 Epoch  42] Val Rel-MSE: 1.4008e-05 | S1:1.3663e-05 S2:1.4376e-05 S3:0.0000e+00
+
+## [2026-11-04 17:37:30] training
+- [Phase1 Epoch  43] Val Rel-MSE: 2.2578e-05 | S1:1.5238e-05 S2:3.0420e-05 S3:0.0000e+00
+
+## [2026-11-04 17:37:36] training
+- [Phase1 Epoch  44] Val Rel-MSE: 1.2386e-05 | S1:1.2157e-05 S2:1.2631e-05 S3:0.0000e+00
+
+## [2026-11-04 17:37:43] training
+- [Phase1 Epoch  45] Val Rel-MSE: 9.4923e-06 | S1:9.5324e-06 S2:9.4495e-06 S3:0.0000e+00
+
+## [2026-11-04 17:37:49] training
+- [Phase1 Epoch  46] Val Rel-MSE: 9.2723e-06 | S1:9.3302e-06 S2:9.2104e-06 S3:0.0000e+00
+
+## [2026-11-04 17:37:56] training
+- [Phase1 Epoch  47] Val Rel-MSE: 7.6961e-06 | S1:8.8766e-06 S2:6.4352e-06 S3:0.0000e+00
+
+## [2026-11-04 17:38:03] training
+- [Phase1 Epoch  48] Val Rel-MSE: 1.0589e-05 | S1:9.5783e-06 S2:1.1668e-05 S3:0.0000e+00
+
+## [2026-11-04 17:38:10] training
+- [Phase1 Epoch  49] Val Rel-MSE: 7.2871e-06 | S1:8.4233e-06 S2:6.0735e-06 S3:0.0000e+00
+
+## [2026-11-04 17:38:17] training
+- [Phase1 Epoch  50] Val Rel-MSE: 7.1667e-06 | S1:8.1555e-06 S2:6.1103e-06 S3:0.0000e+00
+
+## [2026-11-04 17:38:17] training
+- === Phase 2: Progressive Rollout ===
+
+## [2026-11-04 17:38:24] training
+- [Phase2 Epoch   1] roll= 1 | Val Rel-MSE: 2.1636e-05 | S1:1.7534e-05 S2:2.6018e-05 S3:0.0000e+00
+
+## [2026-11-04 17:38:31] training
+- [Phase2 Epoch   2] roll= 1 | Val Rel-MSE: 2.1914e-05 | S1:1.3455e-05 S2:3.0949e-05 S3:0.0000e+00
+
+## [2026-11-04 17:38:38] training
+- [Phase2 Epoch   3] roll= 1 | Val Rel-MSE: 1.0181e-05 | S1:9.4570e-06 S2:1.0954e-05 S3:0.0000e+00
+
+## [2026-11-04 17:38:45] training
+- [Phase2 Epoch   4] roll= 1 | Val Rel-MSE: 9.5891e-06 | S1:9.9235e-06 S2:9.2318e-06 S3:0.0000e+00
+
+## [2026-11-04 17:38:52] training
+- [Phase2 Epoch   5] roll= 1 | Val Rel-MSE: 9.7206e-06 | S1:1.0251e-05 S2:9.1542e-06 S3:0.0000e+00
+
+## [2026-11-04 17:38:59] training
+- [Phase2 Epoch   6] roll= 1 | Val Rel-MSE: 1.0468e-05 | S1:1.1748e-05 S2:9.0997e-06 S3:0.0000e+00
+
+## [2026-11-04 17:39:06] training
+- [Phase2 Epoch   7] roll= 1 | Val Rel-MSE: 1.9759e-05 | S1:1.6872e-05 S2:2.2842e-05 S3:0.0000e+00
+
+## [2026-11-04 17:39:13] training
+- [Phase2 Epoch   8] roll= 1 | Val Rel-MSE: 1.4257e-05 | S1:1.2175e-05 S2:1.6481e-05 S3:0.0000e+00
+
+## [2026-11-04 17:39:19] training
+- [Phase2 Epoch   9] roll= 1 | Val Rel-MSE: 3.7804e-05 | S1:1.9649e-05 S2:5.7198e-05 S3:0.0000e+00
+
+## [2026-11-04 17:39:26] training
+- [Phase2 Epoch  10] roll= 1 | Val Rel-MSE: 1.3853e-05 | S1:1.1892e-05 S2:1.5948e-05 S3:0.0000e+00
+
+## [2026-11-04 17:39:33] training
+- [Phase2 Epoch  11] roll= 1 | Val Rel-MSE: 1.3268e-05 | S1:9.9484e-06 S2:1.6814e-05 S3:0.0000e+00
+
+## [2026-11-04 17:39:42] training
+- [Phase2 Epoch  12] roll= 2 | Val Rel-MSE: 2.8762e-05 | S1:1.4275e-05 S2:4.4236e-05 S3:0.0000e+00
+
+## [2026-11-04 17:39:52] training
+- [Phase2 Epoch  13] roll= 3 | Val Rel-MSE: 1.1522e-05 | S1:1.1035e-05 S2:1.2041e-05 S3:0.0000e+00
+
+## [2026-11-04 17:40:04] training
+- [Phase2 Epoch  14] roll= 4 | Val Rel-MSE: 1.2407e-05 | S1:9.3853e-06 S2:1.5635e-05 S3:0.0000e+00
+
+## [2026-11-04 17:40:16] training
+- [Phase2 Epoch  15] roll= 5 | Val Rel-MSE: 8.4863e-06 | S1:7.7389e-06 S2:9.2848e-06 S3:0.0000e+00
+
+## [2026-11-04 17:40:31] training
+- [Phase2 Epoch  16] roll= 6 | Val Rel-MSE: 6.8907e-06 | S1:7.7826e-06 S2:5.9380e-06 S3:0.0000e+00
+
+## [2026-11-04 17:40:46] training
+- [Phase2 Epoch  17] roll= 7 | Val Rel-MSE: 7.5137e-06 | S1:7.6092e-06 S2:7.4117e-06 S3:0.0000e+00
+
+## [2026-11-04 17:41:03] training
+- [Phase2 Epoch  18] roll= 8 | Val Rel-MSE: 7.4765e-06 | S1:8.3127e-06 S2:6.5832e-06 S3:0.0000e+00
+
+## [2026-11-04 17:41:22] training
+- [Phase2 Epoch  19] roll= 9 | Val Rel-MSE: 7.2258e-06 | S1:7.5434e-06 S2:6.8867e-06 S3:0.0000e+00
+
+## [2026-11-04 17:41:42] training
+- [Phase2 Epoch  20] roll=10 | Val Rel-MSE: 9.9124e-06 | S1:8.4721e-06 S2:1.1451e-05 S3:0.0000e+00
+
+## [2026-11-04 17:42:03] training
+- [Phase2 Epoch  21] roll=11 | Val Rel-MSE: 7.6461e-06 | S1:8.1734e-06 S2:7.0829e-06 S3:0.0000e+00
+
+## [2026-11-04 17:42:25] training
+- [Phase2 Epoch  22] roll=12 | Val Rel-MSE: 7.5115e-06 | S1:7.9523e-06 S2:7.0406e-06 S3:0.0000e+00
+
+## [2026-11-04 17:42:49] training
+- [Phase2 Epoch  23] roll=13 | Val Rel-MSE: 9.3839e-06 | S1:8.2854e-06 S2:1.0557e-05 S3:0.0000e+00
+
+## [2026-11-04 17:43:15] training
+- [Phase2 Epoch  24] roll=14 | Val Rel-MSE: 7.5825e-06 | S1:8.0011e-06 S2:7.1353e-06 S3:0.0000e+00
+
+## [2026-11-04 17:43:40] training
+- [Phase2 Epoch  25] roll=15 | Val Rel-MSE: 8.8872e-06 | S1:8.0915e-06 S2:9.7372e-06 S3:0.0000e+00
+
+## [2026-11-04 17:44:08] training
+- [Phase2 Epoch  26] roll=16 | Val Rel-MSE: 6.8096e-06 | S1:7.4956e-06 S2:6.0769e-06 S3:0.0000e+00
+
+## [2026-11-04 17:44:36] training
+- [Phase2 Epoch  27] roll=17 | Val Rel-MSE: 6.7883e-06 | S1:7.5275e-06 S2:5.9986e-06 S3:0.0000e+00
+
+## [2026-11-04 17:45:06] training
+- [Phase2 Epoch  28] roll=18 | Val Rel-MSE: 6.5800e-06 | S1:7.3881e-06 S2:5.7168e-06 S3:0.0000e+00
+
+## [2026-11-04 17:45:37] training
+- [Phase2 Epoch  29] roll=19 | Val Rel-MSE: 6.8175e-06 | S1:7.4597e-06 S2:6.1314e-06 S3:0.0000e+00
+
+## [2026-11-04 17:46:10] training
+- [Phase2 Epoch  30] roll=20 | Val Rel-MSE: 7.0005e-06 | S1:7.6206e-06 S2:6.3381e-06 S3:0.0000e+00
+
+## [2026-11-04 17:46:43] training
+- [Phase2 Epoch  31] roll=21 | Val Rel-MSE: 6.3577e-06 | S1:7.2734e-06 S2:5.3796e-06 S3:0.0000e+00
+
+## [2026-11-04 17:47:18] training
+- [Phase2 Epoch  32] roll=22 | Val Rel-MSE: 8.1049e-06 | S1:7.9762e-06 S2:8.2423e-06 S3:0.0000e+00
+
+## [2026-11-04 17:47:55] training
+- [Phase2 Epoch  33] roll=23 | Val Rel-MSE: 7.6121e-06 | S1:7.7234e-06 S2:7.4933e-06 S3:0.0000e+00
+
+## [2026-11-04 17:48:32] training
+- [Phase2 Epoch  34] roll=24 | Val Rel-MSE: 6.7761e-06 | S1:7.4397e-06 S2:6.0673e-06 S3:0.0000e+00
+
+## [2026-11-04 17:49:10] training
+- [Phase2 Epoch  35] roll=25 | Val Rel-MSE: 6.4506e-06 | S1:7.3205e-06 S2:5.5214e-06 S3:0.0000e+00
+
+## [2026-11-04 17:49:49] training
+- [Phase2 Epoch  36] roll=26 | Val Rel-MSE: 6.2603e-06 | S1:7.2547e-06 S2:5.1980e-06 S3:0.0000e+00
+
+## [2026-11-04 17:50:29] training
+- [Phase2 Epoch  37] roll=27 | Val Rel-MSE: 6.6637e-06 | S1:7.3455e-06 S2:5.9354e-06 S3:0.0000e+00
+
+## [2026-11-04 17:51:11] training
+- [Phase2 Epoch  38] roll=28 | Val Rel-MSE: 6.6769e-06 | S1:7.4074e-06 S2:5.8966e-06 S3:0.0000e+00
+
+## [2026-11-04 17:51:54] training
+- [Phase2 Epoch  39] roll=29 | Val Rel-MSE: 6.5542e-06 | S1:7.2253e-06 S2:5.8374e-06 S3:0.0000e+00
+
+## [2026-11-04 17:52:39] training
+- [Phase2 Epoch  40] roll=30 | Val Rel-MSE: 6.9069e-06 | S1:7.5895e-06 S2:6.1778e-06 S3:0.0000e+00
+
+## [2026-11-04 17:53:25] training
+- [Phase2 Epoch  41] roll=31 | Val Rel-MSE: 6.4148e-06 | S1:7.3847e-06 S2:5.3789e-06 S3:0.0000e+00
+
+## [2026-11-04 17:54:12] training
+- [Phase2 Epoch  42] roll=32 | Val Rel-MSE: 6.2299e-06 | S1:7.1647e-06 S2:5.2313e-06 S3:0.0000e+00
+
+## [2026-11-04 17:54:59] training
+- [Phase2 Epoch  43] roll=33 | Val Rel-MSE: 6.4239e-06 | S1:7.3402e-06 S2:5.4451e-06 S3:0.0000e+00
+
+## [2026-11-04 17:55:48] training
+- [Phase2 Epoch  44] roll=34 | Val Rel-MSE: 6.3632e-06 | S1:7.2646e-06 S2:5.4003e-06 S3:0.0000e+00
+
+## [2026-11-04 17:56:38] training
+- [Phase2 Epoch  45] roll=35 | Val Rel-MSE: 6.2275e-06 | S1:7.2164e-06 S2:5.1712e-06 S3:0.0000e+00
+
+## [2026-11-04 17:57:31] training
+- [Phase2 Epoch  46] roll=36 | Val Rel-MSE: 6.1875e-06 | S1:7.2390e-06 S2:5.0643e-06 S3:0.0000e+00
+
+## [2026-11-04 17:58:24] training
+- [Phase2 Epoch  47] roll=37 | Val Rel-MSE: 6.3893e-06 | S1:7.3196e-06 S2:5.3956e-06 S3:0.0000e+00
+
+## [2026-11-04 17:59:18] training
+- [Phase2 Epoch  48] roll=38 | Val Rel-MSE: 6.4782e-06 | S1:7.3842e-06 S2:5.5105e-06 S3:0.0000e+00
+
+## [2026-11-04 18:00:14] training
+- [Phase2 Epoch  49] roll=39 | Val Rel-MSE: 6.6502e-06 | S1:7.4737e-06 S2:5.7706e-06 S3:0.0000e+00
+
+## [2026-11-04 18:01:10] training
+- [Phase2 Epoch  50] roll=40 | Val Rel-MSE: 6.2206e-06 | S1:7.2497e-06 S2:5.1212e-06 S3:0.0000e+00
+
+## [2026-11-04 18:02:07] training
+- [Phase2 Epoch  51] roll=41 | Val Rel-MSE: 6.1943e-06 | S1:7.2380e-06 S2:5.0795e-06 S3:0.0000e+00
+
+## [2026-11-04 18:03:05] training
+- [Phase2 Epoch  52] roll=42 | Val Rel-MSE: 6.8115e-06 | S1:7.3955e-06 S2:6.1876e-06 S3:0.0000e+00
+
+## [2026-11-04 18:04:05] training
+- [Phase2 Epoch  53] roll=43 | Val Rel-MSE: 6.5322e-06 | S1:7.4398e-06 S2:5.5628e-06 S3:0.0000e+00
+
+## [2026-11-04 18:05:07] training
+- [Phase2 Epoch  54] roll=44 | Val Rel-MSE: 6.3431e-06 | S1:7.3512e-06 S2:5.2663e-06 S3:0.0000e+00
+
+## [2026-11-04 18:06:10] training
+- [Phase2 Epoch  55] roll=46 | Val Rel-MSE: 6.1797e-06 | S1:7.2116e-06 S2:5.0774e-06 S3:0.0000e+00
+
+## [2026-11-04 18:07:14] training
+- [Phase2 Epoch  56] roll=47 | Val Rel-MSE: 6.0904e-06 | S1:7.2002e-06 S2:4.9050e-06 S3:0.0000e+00
+
+## [2026-11-04 18:08:20] training
+- [Phase2 Epoch  57] roll=48 | Val Rel-MSE: 6.1172e-06 | S1:7.2369e-06 S2:4.9211e-06 S3:0.0000e+00
+
+## [2026-11-04 18:09:27] training
+- [Phase2 Epoch  58] roll=49 | Val Rel-MSE: 6.1394e-06 | S1:7.1650e-06 S2:5.0439e-06 S3:0.0000e+00
+
+## [2026-11-04 18:10:34] training
+- [Phase2 Epoch  59] roll=50 | Val Rel-MSE: 6.0638e-06 | S1:7.1760e-06 S2:4.8758e-06 S3:0.0000e+00
+
+## [2026-11-04 18:11:43] training
+- [Phase2 Epoch  60] roll=52 | Val Rel-MSE: 6.2012e-06 | S1:7.2167e-06 S2:5.1165e-06 S3:0.0000e+00
+
+## [2026-11-04 18:12:52] training
+- [Phase2 Epoch  61] roll=53 | Val Rel-MSE: 6.1150e-06 | S1:7.1826e-06 S2:4.9745e-06 S3:0.0000e+00
+
+## [2026-11-04 18:14:02] training
+- [Phase2 Epoch  62] roll=54 | Val Rel-MSE: 6.0091e-06 | S1:7.0610e-06 S2:4.8856e-06 S3:0.0000e+00
+
+## [2026-11-04 18:15:13] training
+- [Phase2 Epoch  63] roll=55 | Val Rel-MSE: 5.9508e-06 | S1:7.0508e-06 S2:4.7758e-06 S3:0.0000e+00
+
+## [2026-11-04 18:16:26] training
+- [Phase2 Epoch  64] roll=56 | Val Rel-MSE: 6.0175e-06 | S1:7.1354e-06 S2:4.8232e-06 S3:0.0000e+00
+
+## [2026-11-04 18:17:40] training
+- [Phase2 Epoch  65] roll=58 | Val Rel-MSE: 6.0252e-06 | S1:7.1338e-06 S2:4.8410e-06 S3:0.0000e+00
+
+## [2026-11-04 18:18:56] training
+- [Phase2 Epoch  66] roll=59 | Val Rel-MSE: 6.0493e-06 | S1:7.1324e-06 S2:4.8923e-06 S3:0.0000e+00
+
+## [2026-11-04 18:20:13] training
+- [Phase2 Epoch  67] roll=60 | Val Rel-MSE: 6.1389e-06 | S1:7.1841e-06 S2:5.0226e-06 S3:0.0000e+00
+
+## [2026-11-04 18:21:31] training
+- [Phase2 Epoch  68] roll=61 | Val Rel-MSE: 6.0721e-06 | S1:7.1323e-06 S2:4.9396e-06 S3:0.0000e+00
+
+## [2026-11-04 18:22:50] training
+- [Phase2 Epoch  69] roll=62 | Val Rel-MSE: 6.2135e-06 | S1:7.2392e-06 S2:5.1178e-06 S3:0.0000e+00
+
+## [2026-11-04 18:24:11] training
+- [Phase2 Epoch  70] roll=64 | Val Rel-MSE: 6.0991e-06 | S1:7.0992e-06 S2:5.0308e-06 S3:0.0000e+00
+
+## [2026-11-04 18:25:34] training
+- [Phase2 Epoch  71] roll=65 | Val Rel-MSE: 6.0104e-06 | S1:7.0529e-06 S2:4.8968e-06 S3:0.0000e+00
+
+## [2026-11-04 18:26:58] training
+- [Phase2 Epoch  72] roll=66 | Val Rel-MSE: 6.0477e-06 | S1:7.1246e-06 S2:4.8973e-06 S3:0.0000e+00
+
+## [2026-11-04 18:28:22] training
+- [Phase2 Epoch  73] roll=67 | Val Rel-MSE: 6.0311e-06 | S1:7.0817e-06 S2:4.9089e-06 S3:0.0000e+00
+
+## [2026-11-04 18:29:48] training
+- [Phase2 Epoch  74] roll=68 | Val Rel-MSE: 6.1306e-06 | S1:7.1426e-06 S2:5.0496e-06 S3:0.0000e+00
+
+## [2026-11-04 18:31:17] training
+- [Phase2 Epoch  75] roll=70 | Val Rel-MSE: 6.1219e-06 | S1:7.1401e-06 S2:5.0344e-06 S3:0.0000e+00
+
+## [2026-11-04 18:32:46] training
+- [Phase2 Epoch  76] roll=71 | Val Rel-MSE: 6.0561e-06 | S1:7.1089e-06 S2:4.9316e-06 S3:0.0000e+00
+
+## [2026-11-04 18:34:18] training
+- [Phase2 Epoch  77] roll=72 | Val Rel-MSE: 6.1368e-06 | S1:7.1481e-06 S2:5.0567e-06 S3:0.0000e+00
+
+## [2026-11-04 18:35:50] training
+- [Phase2 Epoch  78] roll=73 | Val Rel-MSE: 6.1069e-06 | S1:7.1119e-06 S2:5.0334e-06 S3:0.0000e+00
+
+## [2026-11-04 18:35:50] training
+- Training completed.
+
+## [2026-11-04 18:35:51] training
+- 训练完成 (3795s)
+```
+output=/home/apde/pde_project/interim report/output/runs/round2
+```
+
+## [2026-11-04 18:35:51] eval
+- Round 2 判定: STAGNANT（程序）
+```
+{"verdict": "STAGNANT", "sigma": 0.05, "sigma_source": "assumed", "threshold": 0.1, "overall": {"baseline": 5.649e-06, "current": 6.1069e-06, "r": 0.08105859444149413}, "segments": {"seg1": {"baseline": 6.5584e-06, "current": 7.1119e-06, "r": 0.08439558428885093, "usable": true, "judgment": "持平"}, "seg2": {"baseline": 4.6777e-06, "current": 5.0334e-06, "r": 0.07604164439788781, "usable": true, "judgment": "持平"}, "seg3": {"baseline": 0.0, "current": 0.0, "r": null, "usable": false, "judgment": "不可判定", "reason": "baseline 为 0，该段无区分度"}}, "valid_segments": ["seg1", "seg2"], "reasons": ["所有有效段变化均在阈值 10.0% 以内，视为噪声", "跳过不可判定的段: seg3（baseline 为 0 或缺失）", "⚠ sigma=0.05 为假定值，未用重复实验标定"]}
+```
+
+## [2026-11-04 18:35:51] subagent_call
+- 调用 eval_reflection
+```
+判定已由程序算出，你必须接受，不得修改。
+程序判定: STAGNANT
+判定依据: verdict=STAGNANT | overall 5.649e-06→6.1069e-06 | sigma=0.05(assumed) | thr=0.1 | seg1:+8.4% | seg2:+7.6% | seg3:n/a
+阈值: 2*sigma = 10.0%（sigma=0.05，来源=assumed
+```
+
+## [2026-11-04 18:35:59] eval
+- Round 2 解释
+```
+**为什么是这个结果**
+
+本轮 overall 从 5.649e-06 涨到 6.1069e-06（+8.1%），seg1 +8.4%（6.5584e-06→7.1119e-06）、seg2 +7.6%（4.6777e-06→5.0334e-06），两段**同向轻微退化**，但都落在 2σ=10.0% 的噪声带内，所以程序判 STAGNANT 是自洽的：从量级上看，这与“什么都没发生”无法区分。seg3 baseline=0，本数据上无区分度，不参与判定，也不能说“seg3 保持稳定”。
+
+值得注意的是**退化的符号是系统性的**：两段都朝坏的方向走，而不是一正一负的随机抖动。这提示本轮（R2 改了 2 处）对单步映射本身造成了一次轻微的整体扰动，而不是自回归累积问题——因为 seg2 的相对退化（+7.6%）并不比 seg1（+8.4%）更大；如果是 rollout 误差累积变差，seg2 的退化幅度会明显超过 seg1。换句话说，问题出在“单步拟合质量”这一层，而不是长程一致性那一层；只是这次扰动的幅度（8% 量级）还没突破 10% 的判定阈值。另外，训练时间 3795s，且 R
+```
+
+## [2026-11-04 18:35:59] action
+- 血缘审计
+```
+最优血统: snap:phase0_fno
+```
+
+## [2026-11-04 18:35:59] action
+- 最终 Test 评估
+
+## [2026-11-04 18:35:59] action
+- 最终 Test 评估：无演化模型（所有轮次均未改进），跳过对比
+
+
+# 二、实验轨迹 (Experiment Tracking)
+
+| 轮次 | 模型 | seg1 | seg2 | seg3 | 判定 |
+|------|------|------|------|------|------|
+
+
+# 三、因果拓扑图 (Graph Memory)
+
+### 执行图记忆 (Graph Memory)
+
+#### 节点 (执行步骤):
+
+- **[baseline]** `phase0_fno`: Baseline: fno, priority=1 
+- **[eval]** `phase0_fno_done`: fno: {"overall": 5.649e-06, "seg1": 6.5584e-06, "seg2": 4.6777e-06, "seg3": 0.0} 
+- **[snapshot]** `snap:phase0_fno`: fno {"model_name": "fno", "label": "phase0_fno", "checkpoint": "/home/apde/pde_project/interim report/output/runs/phase0_fno/best_phase2.pt", "identity_ok": true}
+- **[baseline]** `phase0_mgno`: Baseline: mgno, priority=2 
+- **[eval]** `phase0_mgno_done`: mgno: {"overall": 2.2197e-05, "seg1": 2.0059e-05, "seg2": 2.4481e-05, "seg3": 0.0} 
+- **[snapshot]** `snap:phase0_mgno`: mgno {"model_name": "mgno", "label": "phase0_mgno", "checkpoint": "/home/apde/pde_project/interim report/output/runs/phase0_mgno/best_phase2.pt", "identity_ok": true}
+- **[hypothesis]** `R1_hypothesis`: 诊断 {"plan": "## 诊断\n\n先把指标拆开看：seg3 = 0.0，而 overall 5.649e-06 基本等于 seg1、seg2 的组合（用 RMSE 合并 ≈ 5.7e-06，非常接近），说明 **seg3 没有有效误差贡献（大概率该段解已扩散到近稳态/常数场，模型天然拟合为零误差），真正决定整体的是 seg1 和 seg2**。其中 **seg1 = 6.56e-06 明显高于 seg2 = 4.68e-06，它就是短板**。\n\n根因在于这个问题的物理形态：diffusion–sorption 的浓度场在**早期时间前沿最陡、空间梯度最大**，频谱能量显著外溢到高频；随时间推进，扩散把前沿抹平、高频衰减，场越来越平滑。FNO 的 modes 截断本质上是一个**低通算子**，会把 seg1 那段陡峭前沿直接钝化——这正是 seg1 误差系统性地高于 seg2（平滑段）的原因。换言之：不是容量整体不够，而是**频域分辨率对早期高频分量截断过度**。\n\n## 本轮做什么\n\n提高 FNO1d 各谱卷积层的 **modes（频域保留模态数）**，专门补偿 seg1 早期陡前沿所需的高频分量；若显存/时间允许，**同步小幅提升 width** 以维持 sorption 非线性项的表示容量。这是一次针对 seg1 的高频截断修正，不是盲目放大模型。\n\n## 改哪里\n\n只改 `model.py`：\n\n- 定位 `FNO1d`（及其内部的 `SpectralConv1d`）构造函数里的 `modes` / `modes1` 参数。\n- 当前值记为 M（需在代码里确认），**改为约 1.5–2×**：例如 `16 → 32` 或 `24 → 40`。硬上限要满足 `modes ≤ N/2+1 = 513`（N=1024），远未触及，安全。\n- 若构造函数同时接受 `width`：`width → ×1.5`（如 `32 → 48`），仅在训练/推理时间仍在约束内时采用。\n- **不动 `forward` 的输入输出 shape**，不改前向接口。\n\n（如果原实现里 modes 是写死在 block 层的常量，就改那个常量；只要是 model.py 内部即可。）\n\n## 为什么\n\n数学上，FNO 的谱卷积 = 对输入做 FFT → 只保留最低 M 个模态 → 反变换，等价于一个**理想低通滤波器 + 可学习逐模态权重**。误差可分解为\"截断误差（被丢弃的高频模态能量）+ 拟合误差\"。seg1 的早期前沿是全场中最陡的空间结构，其高频模态能量占比最高，被 M 个模态截断丢弃得最多 → 截断误差最大；seg2 时场已平滑、高频能量本身很小 → 截断误差小。所以把 M 提高，直接削减的是 seg1 独有的那份截断误差，而对已平滑的 seg2 几乎无害。这是\"定点打 seg1、不伤 seg2\"的依据。width 的同步微调则对应：sorption 的 Langmuir 型非线性在陡前沿处梯度大，需要足够的逐点 MLP 容量才不会把陡变抹平。\n\n## 怎么验证\n\n- **主看 seg1**：预期从 6.56e-06 降到 5e-06 量级或更低（≥15% 改善）；seg2 持平或略降；overall 随之下降。\n- **副作用护栏**：① seg2 若上升超过 ~10%，说明 modes 提太多引入了对平滑段的过拟合/吉布斯振荡，回退一档；② 训练/推理时间需仍在 <12h / <2min 约束内，否则只保留 modes 提升、放弃 width；③ 重点抽查 seg1 近边界处是否出现振荡（若边界处理不当，加大 modes 反而可能在边界放大误差）——若出现，说明瓶颈其实在周期 FFT 假设与非周期边界的冲突，下一轮应转向\"局部卷积旁路\"而非继续加 modes。\n\n如果这个方案 failure signal 出现（seg1 不降或边界振荡），Captain 可基于新状态让我改提\"谱卷积旁挂一条小卷积局部路径\"的 P1 方案。"}
+- **[snapshot]** `snap:round1_pre`: fno {"model_name": "fno", "label": "round1_pre", "checkpoint": "/home/apde/pde_project/interim report/output/runs/phase0_fno/best_phase2.pt", "identity_ok": true}
+- **[code_edit]** `R1_edit`: 1 处修改 {"applied": 1, "hash_before": "78d5aad9b0dcf44adfd6ee55ad10d338d59db167620a99526adc3ebd4f29957b", "hash_after": "41edee5245c203c1ee584ec2ef8d921c8f82459986d2a98bf51115f04dd6ad21"}
+- **[train]** `R1_train`: 5706s {"train_time": 5706.190140247345, "run": "round1"}
+- **[eval]** `R1_eval`:  {"overall": 5.649e-06, "seg1": 6.5584e-06, "seg2": 4.6777e-06, "seg3": 0.0}
+- **[judgement]** `R1_judgement`: STAGNANT {"verdict": "STAGNANT", "threshold": 0.1, "sigma": 0.05, "overall": {"baseline": 5.649e-06, "current": 5.649e-06, "r": 0.0}, "segments": {"seg1": {"baseline": 6.5584e-06, "current": 6.5584e-06, "r": 0.0, "usable": true, "judgment": "持平"}, "seg2": {"baseline": 4.6777e-06, "current": 4.6777e-06, "r": 0.0, "usable": true, "judgment": "持平"}, "seg3": {"baseline": 0.0, "current": 0.0, "r": null, "usable": false, "judgment": "不可判定", "reason": "baseline 为 0，该段无区分度"}}, "reasons": ["所有有效段变化均在阈值 10.0% 以内，视为噪声", "跳过不可判定的段: seg3（baseline 为 0 或缺失）", "⚠ sigma=0.05 为假定值，未用重复实验标定"]}
+- **[outcome]** `R1_outcome`: STAGNANT（在噪声阈值内，保留现状） 
+- **[hypothesis]** `R2_hypothesis`: 诊断 {"plan": "## 诊断\n\n先看清实际指标，别被“seg3 为短板”的直觉误导。当前 fno 的三段是 seg1=6.56e-6、seg2=4.68e-6、seg3=0.0，**全部落在 ~1e-6 量级**，这已经不是“哪段发散”的问题，而是三段基本都贴到了这套 1D diffusion-sorption 数据的可分辨误差底。严格按数值排序，**seg1（早期/初始过渡段）是名义上的短板**（6.56e-6 > seg2 的 4.68e-6），seg3=0.0 大概率是未评测/无样本而非真误差为零。\n\nseg1 略差有清晰的物理根因：diffusion-sorption 的解是一个**随时间的浓度前缘（contaminant front）**，初始过渡阶段前缘最陡、梯度最大。FNO 的 Fourier 层是**频带受限算子**（只保留前 modes 个低波数），对这条陡前沿做谱截断会把它抹平/产生轻微振铃，误差就集中在这一段。换句话说，瓶颈不是容量不够，而是**谱截断对最陡的前沿结构表达能力不足**。\n\n## 本轮做什么（只给一个方案）\n\n在 FNO 的每个 Fourier 层里，给谱卷积分支**并联一条 depthwise 局部卷积旁路**，用局部 3–5 点 stencil 补上谱截断丢掉的高波数前沿成分，再相加后过激活。这条旁路是**低秩、极廉价**的（分组卷积，参数量 ≈ width×k），比“翻倍 modes”便宜得多，也不改 I/O。\n\n## 改哪里\n\n- 文件：`model.py`\n- 位置：FNO 的 Fourier block（即含 `SpectralConv1d` + 激活 的那一层，类名以代码为准，如 `FNO1d` 内的 `SpectralBlock`/`FourierLayer`）\n- 具体改动：\n  - 在该层 `__init__` 新增一条：`self.local_conv = nn.Conv1d(width, width, kernel_size=5, padding=2, groups=width)`（深度可分离，输出长度不变）。\n  - 在前向中，把原来的 `x = spectral(x) + W(x)`（或等价 skip）改为 `x = spectral(x) + W(x) + self.local_conv(x)`，再过 GELU/激活。\n- 不新增/不修改任何输入输出 reshape，`model.forward(x)` 的 shape 契约完全不变。\n\n## 为什么（物理/数学依据）\n\n- 数学：`SpectralConv` 保留前 M 个模式的本质是**带限算子**，等价于一个理想低通；前缘对应的能量分布在截断波数之外，被低通直接丢掉。depthwise 卷积是一个**紧支撑的局部差分算子**，其频响覆盖全频带但能量集中在高波数——两者相加 ≈ “低通 + 高波数补丁”，在**不扩 FFT 规模**的前提下扩展了有效频谱覆盖，正对症谱截断抹平前沿的问题。\n- 物理：diffusion-sorption 的陡峭浓度前沿是局部陡变，天然由局部 stencil 表达；seg1 误差最大正是初始过渡段前沿最陡处，改这一层收益应集中在 seg1。\n\n## 怎么验证\n\n- 主看 **seg1**：预期 seg1 相对自身误差下降（前沿被补回来后误差集中点被消掉），overall 随之下降；seg2 应基本持平（中段前沿已较缓）。\n- 注意噪声底：R1 已标记 sigma=0.05 为假定值、未标定，且当前误差在 1e-6 量级，**任何 <10% 的变化都可能是噪声**。判定标准定为：seg1 相对下降 ≥10% 才算真改善。\n- 回退条件：若 seg1 不降反升，或 seg2 掉了 >10%，说明局部旁路引入了高频振铃、过度拟合前沿，需回退（可先试 kernel=3 或给 local_conv 输出乘一个 <1 的缩放）。\n- 若三段都在噪声内无变化，则说明该瓶颈不是谱截断而是测量噪声底——这本身也是有效结论，供 Captain 判断是否停止在该数据上继续榨精度。"}
+- **[snapshot]** `snap:round2_pre`: fno {"model_name": "fno", "label": "round2_pre", "checkpoint": "/home/apde/pde_project/interim report/output/runs/phase0_fno/best_phase2.pt", "identity_ok": true}
+- **[code_edit]** `R2_edit`: 2 处修改 {"applied": 2, "hash_before": "78d5aad9b0dcf44adfd6ee55ad10d338d59db167620a99526adc3ebd4f29957b", "hash_after": "6aacd997b75fca194c8e8182c3be114daab1551d0102b18a71cf4d6bec6179bf"}
+- **[train]** `R2_train`: 3795s {"train_time": 3795.2287726402283, "run": "round2"}
+- **[eval]** `R2_eval`:  {"overall": 6.1069e-06, "seg1": 7.1119e-06, "seg2": 5.0334e-06, "seg3": 0.0}
+- **[judgement]** `R2_judgement`: STAGNANT {"verdict": "STAGNANT", "threshold": 0.1, "sigma": 0.05, "overall": {"baseline": 5.649e-06, "current": 6.1069e-06, "r": 0.08105859444149413}, "segments": {"seg1": {"baseline": 6.5584e-06, "current": 7.1119e-06, "r": 0.08439558428885093, "usable": true, "judgment": "持平"}, "seg2": {"baseline": 4.6777e-06, "current": 5.0334e-06, "r": 0.07604164439788781, "usable": true, "judgment": "持平"}, "seg3": {"baseline": 0.0, "current": 0.0, "r": null, "usable": false, "judgment": "不可判定", "reason": "baseline 为 0，该段无区分度"}}, "reasons": ["所有有效段变化均在阈值 10.0% 以内，视为噪声", "跳过不可判定的段: seg3（baseline 为 0 或缺失）", "⚠ sigma=0.05 为假定值，未用重复实验标定"]}
+- **[outcome]** `R2_outcome`: STAGNANT（在噪声阈值内，保留现状） 
+
+#### 边 (数据依赖):
+
+- `snap:phase0_fno` --[PRODUCES: model.py]--> `snap:round1_pre`
+- `R1_hypothesis` --[PRODUCES: model.py]--> `R1_edit`
+- `R1_edit` --[PRODUCES: checkpoint]--> `R1_train`
+- `R1_train` --[PRODUCES: metrics]--> `R1_eval`
+- `R1_eval` --[PRODUCES: verdict]--> `R1_judgement`
+- `R1_judgement` --[TRIGGERED: decision]--> `R1_outcome`
+- `snap:phase0_fno` --[PRODUCES: model.py]--> `snap:round2_pre`
+- `R2_hypothesis` --[PRODUCES: model.py]--> `R2_edit`
+- `R2_edit` --[PRODUCES: checkpoint]--> `R2_train`
+- `R2_train` --[PRODUCES: metrics]--> `R2_eval`
+- `R2_eval` --[PRODUCES: verdict]--> `R2_judgement`
+- `R2_judgement` --[TRIGGERED: decision]--> `R2_outcome`

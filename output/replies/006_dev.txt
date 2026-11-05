@@ -1,17 +1,91 @@
-```json
-{
-  "mode": "edit",
-  "edits": [
-    {
-      "file": "model.py",
-      "reason": "Increase Fourier modes from 12 to 24 to enhance high-frequency representation of shocks, while keeping width at 32 as already sufficient.",
-      "changes": [
-        {
-          "old": "def __init__(self, modes: int = 12, width: int = 32, in_channels: int = 10,",
-          "new": "def __init__(self, modes: int = 24, width: int = 32, in_channels: int = 10,"
-        }
-      ]
-    }
-  ]
-}
-```
+本轮按假说给 FNO1d 的 4 个 Fourier 层并联 depthwise 局部卷积旁路，用 5 点 stencil 补回谱截断丢掉的高波数前沿成分。
+
+改什么、为什么：
+- 在 `FNO1d.__init__` 里 `w0..w3` 之后新增 `local_conv0..3`，均为 `kernel_size=5, padding=2, groups=width` 的深度可分离卷积。**kernel=5 且 padding=2 保证输出长度 = 输入长度**，与原有 `x1 + x2` 完全对齐，不影响任何 shape。
+- 前向里把每个 Fourier 层的 `x = x1 + x2`（谱卷积分支 + 1x1 跳连）改成 `x = x1 + x2 + self.local_convK(x)`，再走原激活。**注意在 FNO1d 里 x 已被 `F.pad(x, [0, padding])` 补了 2，local_conv 的 padding=2 与之一致，末尾 `x[..., :-self.padding]` 照常恢复长度 N，I/O 契约 `(B,N,T_in)→(B,N,1)` 不变。**
+- 只动 FNO1d 与它的 4 个前向块，FNO2d/3d 完全不动，ckpt 反推逻辑不受影响。
+
+FILE: model.py
+<<<<<<< SEARCH
+        self.w0 = nn.Conv1d(self.width, self.width, 1)
+        self.w1 = nn.Conv1d(self.width, self.width, 1)
+        self.w2 = nn.Conv1d(self.width, self.width, 1)
+        self.w3 = nn.Conv1d(self.width, self.width, 1)
+=======
+        self.w0 = nn.Conv1d(self.width, self.width, 1)
+        self.w1 = nn.Conv1d(self.width, self.width, 1)
+        self.w2 = nn.Conv1d(self.width, self.width, 1)
+        self.w3 = nn.Conv1d(self.width, self.width, 1)
+
+        # Depthwise local-conv bypass: cheap high-wavenumber "patch" that
+        # complements the band-limited spectral operator (kernel=5, padding=2
+        # preserves sequence length).
+        self.local_conv0 = nn.Conv1d(
+            self.width, self.width, kernel_size=5, padding=2, groups=self.width
+        )
+        self.local_conv1 = nn.Conv1d(
+            self.width, self.width, kernel_size=5, padding=2, groups=self.width
+        )
+        self.local_conv2 = nn.Conv1d(
+            self.width, self.width, kernel_size=5, padding=2, groups=self.width
+        )
+        self.local_conv3 = nn.Conv1d(
+            self.width, self.width, kernel_size=5, padding=2, groups=self.width
+        )
+>>>>>>> REPLACE
+
+FILE: model.py
+<<<<<<< SEARCH
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x = F.gelu(x)
+=======
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2 + self.local_conv0(x)
+        x = F.gelu(x)
+>>>>>>> REPLACE
+
+FILE: model.py
+<<<<<<< SEARCH
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x = F.gelu(x)
+=======
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2 + self.local_conv1(x)
+        x = F.gelu(x)
+>>>>>>> REPLACE
+
+FILE: model.py
+<<<<<<< SEARCH
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x = F.gelu(x)
+=======
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2 + self.local_conv2(x)
+        x = F.gelu(x)
+>>>>>>> REPLACE
+
+FILE: model.py
+<<<<<<< SEARCH
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+
+        x = x[..., : -self.padding]
+=======
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2 + self.local_conv3(x)
+
+        x = x[..., : -self.padding]
+>>>>>>> REPLACE
+
+Shape 心智检查：输入 `(B, N, T_in)` → `fc0` 后 `(B, N, width)` → permute `(B, width, N)` → pad 到 `(B, width, N+2)` → 4 层每个算子（谱卷积/1x1/depthwise k=5,p=2）输出都保持 `(B, width, N+2)`，相加后形状不变 → unpad 回 `(B, width, N)` → permute + fc1/fc2 → `(B, N, out)` → `unsqueeze(-2)` 得 `(B, N, 1)`。空间长度 N 全程不变，输出通道为 `num_channels`（与原实现一致），无池化/stride，I/O 契约不受影响。

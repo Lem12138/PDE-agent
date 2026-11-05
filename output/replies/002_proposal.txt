@@ -1,51 +1,31 @@
-{
-  "analysis": "FNO 自回归第一段 (seg1) 误差略高于第二段，根因是训练仅用真值下一步的 MSE，未考虑自回归时的输入分布偏移，导致模型对自身预测的微小误差敏感，缺乏鲁棒性。",
-  "hypotheses": [
-    {
-      "id": "H3",
-      "priority": "P0",
-      "title": "多步 rollout 损失训练增强自回归稳定性",
-      "physical_basis": "神经算子作为离散动力系统模拟器，自回归演化时须对输入扰动不敏感。单步 MSE 训练不能保证模型在反馈自身输出时保持收敛。通过在训练中展开 2-3 步，最小化多步累积误差，可强制模型学习对预测偏差的校正能力，相当于实施一种影子化约束 (shadowing property)，从而降低自回归前几步的误差。",
-      "expected_effect": "seg1 预计降至 5e-06 以下，seg2 可能进一步改善，seg3 保持 0.0。整体误差有望到 3-4e-06。训练时间增加约 30%-50%，仍在 12h 内。",
-      "target": {
-        "file": "train.py",
-        "layer": "训练循环中的损失计算和前向过程",
-        "change": "修改 Phase2 训练：原先只用第一步的预测计算 MSE，改为从初始条件出发，用模型自回归 rollout k 步（k=2 或 3），计算每一步与真值的平均 MSE 作为损失。梯度通过整个 rollout 传播。k=2 平衡效果与开销。",
-        "pseudo_code": "# 在训练循环中\nk_rollout = 2\np_pred_list = []\np_input = p_x[:, 0:1, :]  # 初始帧\nfor step in range(k_rollout):\n    p_out = model(p_input)\n    p_pred_list.append(p_out)\n    p_input = p_out  # 自回归接入\nloss = sum(F.mse_loss(p_pred_list[i], p_y[:, i:i+1, :]) for i in range(k_rollout)) / k_rollout"
-      },
-      "risk": "低 — 梯度路径变长可能导致显存增加，但 2 步 rollout 对 FNO 开销可控；未改变模型架构，不会引入 NaN。",
-      "validation": "训练后 seg1 是否显著低于 baseline 的 9e-06，同时 seg2 不高于 8e-06。"
-    },
-    {
-      "id": "H4",
-      "priority": "P0",
-      "title": "引入总质量守恒软约束损失",
-      "physical_basis": "Burgers 方程在周期边界下空间平均值 ∫u dx 严格守恒。当前模型纯数据驱动，未显式保证该保守性质。在损失函数中增加预测序列各时间步空间均值与初始均值偏差的惩罚项，可抑制低频漂移，虽 seg3 已为 0，但此约束可进一步提高自回归初始步 (seg1) 的稳定性和一致收敛性。",
-      "expected_effect": "seg1 预期下降至 6-7e-06，seg2 持平或微降，seg3 不变。训练时间几乎无增加。",
-      "target": {
-        "file": "train.py",
-        "layer": "损失计算",
-        "change": "在原有 mse_loss 上增加守恒损失项，权重 λ_cons = 0.1。对于预测序列 p_pred (shape [B, T, X])，计算每个时间步空间均值，与初始条件空间均值的差异平方和，取均值。",
-        "pseudo_code": "def mean_conservation_loss(p_pred, p_x0):\n    # p_pred: [B, T, X], p_x0: [B, 1, X] 初始帧\n    mean0 = p_x0.mean(dim=-1, keepdim=True)  # [B,1,1]\n    mean_t = p_pred.mean(dim=-1)             # [B,T]\n    return F.mse_loss(mean_t, mean0.expand_as(mean_t))\nloss = mse_loss + 0.1 * mean_conservation_loss(p_pred, p_x[:, 0:1, :])"
-      },
-      "risk": "低 — 梯度稳定，仅增加简单统计计算；权重 0.1 温和，不会干扰主要损失。",
-      "validation": "观察 seg1 降低，同时空间均值时间序列更平直。"
-    },
-    {
-      "id": "H5",
-      "priority": "P1",
-      "title": "调整 width/modes 平衡并加入 Dropout 防过拟合",
-      "physical_basis": "先前增大 modes→16 导致 seg2 恶化，怀疑模型过拟合高频噪声，因 width=32 未相应增加，容量不匹配。若将 width 升至 48，modes 保持 12，可增加傅里叶层表达能力；同时引入谱域 Dropout (FNO 中模式丢弃) 或通道 Dropout，可抑制对特定频带的依赖，提升泛化。理论上在不截断更多模式的情况下，更宽网络能更好利用现有模式，并提升短时预测精度。",
-      "expected_effect": "seg1 可能微降，seg2 至少不会像 R1 那样恶化。如果成功，整体误差 4-6e-06；若失败可回退。",
-      "target": {
-        "file": "model.py 及 train.py",
-        "layer": "FNO 类定义与训练设置",
-        "change": "modes=12 不变，width 从 32 改为 48；在 FNO 的 spectralConv 层后添加一个微小的 dropout (p=0.05) 或者实现随机 drop 模式（如 FNO 中随机置零部分高频模式）。训练超参保持。",
-        "pseudo_code": "self.conv0 = nn.Conv1d(1, 48, 1)\n... # 各层 width=48\nself.drop = nn.Dropout(0.05)  # 加在 spectralConv 输出的激活后面"
-      },
-      "risk": "中 — 增加宽度提升训练时长约 30%，且增加 dropout 可能改善但不确定；若 dropout 过强会欠拟合。可用小概率 0.05 起步，观察 seg1。",
-      "validation": "对比 baseline，要求 seg1, seg2 不差于 baseline，且不出现 R1 的 seg2 急剧升高。"
-    }
-  ],
-  "fallback": "如果多步 rollout 和守恒约束均无法降低 seg1，则考虑使用数据增强（输入添加微小高斯噪声）配合更长的训练 epoch，或更换优化器为 AdamW，从学习率调度上精细调参。"
-}
+## 诊断
+
+先把指标拆开看：seg3 = 0.0，而 overall 5.649e-06 基本等于 seg1、seg2 的组合（用 RMSE 合并 ≈ 5.7e-06，非常接近），说明 **seg3 没有有效误差贡献（大概率该段解已扩散到近稳态/常数场，模型天然拟合为零误差），真正决定整体的是 seg1 和 seg2**。其中 **seg1 = 6.56e-06 明显高于 seg2 = 4.68e-06，它就是短板**。
+
+根因在于这个问题的物理形态：diffusion–sorption 的浓度场在**早期时间前沿最陡、空间梯度最大**，频谱能量显著外溢到高频；随时间推进，扩散把前沿抹平、高频衰减，场越来越平滑。FNO 的 modes 截断本质上是一个**低通算子**，会把 seg1 那段陡峭前沿直接钝化——这正是 seg1 误差系统性地高于 seg2（平滑段）的原因。换言之：不是容量整体不够，而是**频域分辨率对早期高频分量截断过度**。
+
+## 本轮做什么
+
+提高 FNO1d 各谱卷积层的 **modes（频域保留模态数）**，专门补偿 seg1 早期陡前沿所需的高频分量；若显存/时间允许，**同步小幅提升 width** 以维持 sorption 非线性项的表示容量。这是一次针对 seg1 的高频截断修正，不是盲目放大模型。
+
+## 改哪里
+
+只改 `model.py`：
+
+- 定位 `FNO1d`（及其内部的 `SpectralConv1d`）构造函数里的 `modes` / `modes1` 参数。
+- 当前值记为 M（需在代码里确认），**改为约 1.5–2×**：例如 `16 → 32` 或 `24 → 40`。硬上限要满足 `modes ≤ N/2+1 = 513`（N=1024），远未触及，安全。
+- 若构造函数同时接受 `width`：`width → ×1.5`（如 `32 → 48`），仅在训练/推理时间仍在约束内时采用。
+- **不动 `forward` 的输入输出 shape**，不改前向接口。
+
+（如果原实现里 modes 是写死在 block 层的常量，就改那个常量；只要是 model.py 内部即可。）
+
+## 为什么
+
+数学上，FNO 的谱卷积 = 对输入做 FFT → 只保留最低 M 个模态 → 反变换，等价于一个**理想低通滤波器 + 可学习逐模态权重**。误差可分解为"截断误差（被丢弃的高频模态能量）+ 拟合误差"。seg1 的早期前沿是全场中最陡的空间结构，其高频模态能量占比最高，被 M 个模态截断丢弃得最多 → 截断误差最大；seg2 时场已平滑、高频能量本身很小 → 截断误差小。所以把 M 提高，直接削减的是 seg1 独有的那份截断误差，而对已平滑的 seg2 几乎无害。这是"定点打 seg1、不伤 seg2"的依据。width 的同步微调则对应：sorption 的 Langmuir 型非线性在陡前沿处梯度大，需要足够的逐点 MLP 容量才不会把陡变抹平。
+
+## 怎么验证
+
+- **主看 seg1**：预期从 6.56e-06 降到 5e-06 量级或更低（≥15% 改善）；seg2 持平或略降；overall 随之下降。
+- **副作用护栏**：① seg2 若上升超过 ~10%，说明 modes 提太多引入了对平滑段的过拟合/吉布斯振荡，回退一档；② 训练/推理时间需仍在 <12h / <2min 约束内，否则只保留 modes 提升、放弃 width；③ 重点抽查 seg1 近边界处是否出现振荡（若边界处理不当，加大 modes 反而可能在边界放大误差）——若出现，说明瓶颈其实在周期 FFT 假设与非周期边界的冲突，下一轮应转向"局部卷积旁路"而非继续加 modes。
+
+如果这个方案 failure signal 出现（seg1 不降或边界振荡），Captain 可基于新状态让我改提"谱卷积旁挂一条小卷积局部路径"的 P1 方案。

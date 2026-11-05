@@ -11,3 +11,8 @@ data/
 output/runs/
 output/snapshots/
 output/state/
+output/data_splits/
+output/final_eval/
+output/archive/
+output/run_*.log
+output/run.logpath

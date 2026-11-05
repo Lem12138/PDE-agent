@@ -226,6 +226,8 @@ def main():
     parser.add_argument("--output_dir", required=True, help="Output directory")
     parser.add_argument("--task_id", type=int, default=1)
     parser.add_argument("--no_gt", action="store_true", help="Test data has no ground truth (only initial conditions)")
+    parser.add_argument("--max_samples", type=int, default=0,
+                        help="只评估前 N 条测试样本（0=全部），用于快速冒烟")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -255,6 +257,10 @@ def main():
                 test_raw = f[key][:]
                 break
     print(f"  Test shape: {test_raw.shape}")
+
+    if args.max_samples and args.max_samples > 0 and test_raw.shape[0] > args.max_samples:
+        test_raw = test_raw[:args.max_samples]
+        print(f"  Limited to {test_raw.shape[0]} samples (--max_samples)")
 
     # Spatial resampling
     if subsample > 1 and test_raw.shape[-1] > n_spatial:
