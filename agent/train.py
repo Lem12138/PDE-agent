@@ -1,4 +1,6 @@
 import argparse, os, json, sys, random
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from tools.model_factory import build_model
 import numpy as np, h5py
 import torch, torch.nn as nn, torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
@@ -211,30 +213,14 @@ def main():
     if args.checkpoint:
         raw = torch.load(args.checkpoint, map_location='cpu', weights_only=False)
         state = raw.get('model_state_dict', raw.get('state_dict', raw))
-        model = ModelClass(**_hp(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1))
+        model = build_model(ModelClass, hp=_hp(modes=args.modes, width=args.width),
+                            T_IN=T_IN, N_spatial=N_spatial)
         model.load_state_dict(state, strict=False)
         model = model.to(device)
     else:
-        # Try multiple constructor patterns (same as _discover_model_class)
-        ctor_patterns = [
-            lambda: ModelClass(**_hp(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1)),
-            lambda: ModelClass(**_hp(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1, n_layers=args.n_layers)),
-            lambda: ModelClass(**_hp(modes=args.modes, width=args.width, in_channels=T_IN, out_channels=1, n_layers=args.n_layers, n_scales=3)),
-            lambda: ModelClass(**_hp(num_channels=1, modes=args.modes, width=args.width, initial_step=T_IN)),
-            lambda: ModelClass(**_hp(in_channels=T_IN, out_channels=1, base_width=args.width, depth=args.n_layers)),
-            lambda: ModelClass(**_hp(in_channels=T_IN, out_channels=1, init_features=args.width)),
-            lambda: ModelClass(**_hp(in_channels=T_IN, width=args.width, n_layers=args.n_layers, n_basis=128, nx=N_spatial)),
-            lambda: ModelClass(),
-        ]
-        model = None
-        for pat in ctor_patterns:
-            try:
-                model = pat()
-                break
-            except (TypeError, ValueError):
-                continue
-        if model is None:
-            raise RuntimeError(f"Cannot instantiate {ModelClass.__name__} with any known pattern")
+        model = build_model(ModelClass, hp=_hp(modes=args.modes, width=args.width,
+                                               n_layers=args.n_layers),
+                            T_IN=T_IN, N_spatial=N_spatial)
         model = model.to(device)
     print(f"Model: {ModelClass.__name__}, params={sum(p.numel() for p in model.parameters()):,}")
 

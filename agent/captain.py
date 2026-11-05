@@ -175,6 +175,67 @@ class Captain:
         info = self.registry.get(model_name, {}) if isinstance(self.registry, dict) else {}
         return info.get("class", "") if isinstance(info, dict) else ""
 
+    _SIG_SCRIPT = r"""
+import sys, json, hashlib
+sys.path.insert(0, {root!r})
+import torch
+torch.manual_seed(0)
+import model as m
+from tools.model_factory import build_model
+
+cls = getattr(m, {cls!r})
+net = build_model(cls, hp={hp!r}, T_IN={t_in}, N_spatial={n})
+net.eval()
+torch.manual_seed(0)
+x = torch.randn(2, {n}, {t_in})
+with torch.no_grad():
+    try:
+        y = net(x)
+    except TypeError:
+        grid = torch.linspace(0, 1, {n}).view(1, {n}, 1).expand(2, {n}, 1)
+        y = net(x, grid)
+if isinstance(y, tuple):
+    y = y[0]
+h = hashlib.sha256(y.detach().cpu().numpy().tobytes()).hexdigest()
+print(json.dumps({{
+    "model_class": {cls!r},
+    "params": sum(p.numel() for p in net.parameters()),
+    "out_shape": list(y.shape),
+    "out_hash": h,
+}}))
+"""
+
+    def _behavior_signature(self, context: str = "") -> dict | None:
+        """固定种子 + 固定输入跑一次前向，得到模型的行为指纹。
+
+        用于识别「文件改了但模型行为没变」的空操作：
+        参数量、每层形状、以及前向输出哈希三者全同 → 改动没有实际效果。
+        """
+        cls_name = self._model_class_name(self.current_model)
+        if not cls_name:
+            return None
+        cfg = getattr(self, "data_config", None) or {}
+        t_in = cfg.get("t_in", 10)
+        n = cfg.get("n_spatial", 256)
+        hp = {k: v for k, v in (self.train_overrides or {}).items()
+              if k in ("modes", "width", "n_layers")}
+        script = self._SIG_SCRIPT.format(root=WORKSPACE, cls=cls_name, hp=hp, t_in=t_in, n=n)
+        try:
+            proc = subprocess.run([sys.executable, "-B", "-c", script],
+                                  capture_output=True, text=True,
+                                  timeout=300, cwd=AGENT_DIR)
+        except subprocess.TimeoutExpired:
+            self._trace("action", f"行为签名超时（{context}）", "")
+            return None
+        lines = (proc.stdout or "").strip().splitlines()
+        if not lines:
+            self._trace("action", f"行为签名失败（{context}）", (proc.stderr or "")[-200:])
+            return None
+        try:
+            return json.loads(lines[-1])
+        except Exception:
+            return None
+
     def _verify_identity(self, expected_model: str, context: str = "", recheck: bool = True) -> bool:
         """校验 agent/model.py 里实际能被实例化的类，是否就是 expected_model。
 
@@ -1062,6 +1123,8 @@ class Captain:
             _parent = os.path.basename(self.best_code_dir) if self.best_code_dir else ""
             self._save_snapshot(f"round{rnd}_pre", model_name=self.current_model,
                                 parent_label=_parent)
+            # 编辑前记录行为指纹（此刻 model.py 仍是修改前的代码）
+            sig_before = self._behavior_signature(f"Round {rnd} 编辑前")
 
             # 3) Dev — 传完整 model.py，确保 old 字符串精确匹配
             dev_task = (
@@ -1122,6 +1185,25 @@ class Captain:
                 self._trace("action", f"Round {rnd} 模型身份错配，本轮无效，回退", "")
                 self._rollback()
                 continue
+
+            # 3.5) 行为级校验：文件改了不等于模型变了
+            sig_after = self._behavior_signature(f"Round {rnd} 编辑后")
+            if sig_before and sig_after:
+                if sig_before == sig_after:
+                    self._trace("action",
+                                f"Round {rnd} 空操作：模型行为完全未变，本轮无效，不训练",
+                                f"params={sig_after.get('params')} "
+                                f"out_hash={str(sig_after.get('out_hash'))[:16]}")
+                    self.graph.add_node(f"R{rnd}_noop", "error",
+                                        f"Round {rnd} 空操作：改动未影响模型行为")
+                    self._add_outcome(rnd, "无效（改动未改变模型行为）")
+                    self._rollback()
+                    continue
+                self._trace("action",
+                            f"Round {rnd} 行为已改变：params {sig_before.get('params')} → "
+                            f"{sig_after.get('params')}, "
+                            f"out_hash {str(sig_before.get('out_hash'))[:8]} → "
+                            f"{str(sig_after.get('out_hash'))[:8]}")
 
             # 4) 训练（带内循环修复 + 回退保护）
             ok, train_time = self._run_training(f"round{rnd}")
