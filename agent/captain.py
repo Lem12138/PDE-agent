@@ -1101,6 +1101,10 @@ print(json.dumps({{
             self.inner_loop_count = 0
             print(f"\n--- Round {rnd}/{self.max_rounds} ---")
 
+            # 不变量：每轮开始前，工作区 model.py 必须等于最优快照的代码。
+            # 任何异常路径若漏了回滚，这里会兜底纠正，避免在坏代码上继续演化。
+            self._ensure_workspace_matches_best()
+
             # 1) Proposal
             self._trace("action", f"Round {rnd}: 调度 Proposal")
             proposal_task = (
@@ -1175,10 +1179,19 @@ print(json.dumps({{
             if not self._validate_python(MODEL_PATH):
                 self._trace("action", "语法校验失败，触发内循环修复", "")
                 if not self._inner_loop_fix("语法错误"):
+                    self._trace("action", f"Round {rnd} 语法无法修复，本轮无效，回退", "")
+                    self.graph.add_node(f"R{rnd}_syntax", "error", f"Round {rnd} 语法错误未修复")
+                    self._add_outcome(rnd, "无效（语法错误未修复）")
+                    self._rollback()
                     continue
             if not self._instantiation_check():
                 self._trace("action", "实例化检查失败，触发内循环修复", "")
                 if not self._inner_loop_fix("实例化/forward 失败"):
+                    self._trace("action", f"Round {rnd} 实例化无法修复，本轮无效，回退", "")
+                    self.graph.add_node(f"R{rnd}_instfail", "error",
+                                        f"Round {rnd} 实例化失败未修复")
+                    self._add_outcome(rnd, "无效（实例化/forward 失败）")
+                    self._rollback()
                     continue
             # 身份校验：实际实例化的类必须仍是本轮要优化的模型，否则本轮无效
             if not self._verify_identity(self.current_model, context=f"Round {rnd}", recheck=False):
@@ -1378,6 +1391,26 @@ print(json.dumps({{
     # ================================================================
     # 血缘审计（用上游/下游遍历回答「最优从哪来」「谁被污染」）
     # ================================================================
+    def _ensure_workspace_matches_best(self) -> bool:
+        """确保 agent/model.py 与最优快照一致；不一致则恢复。
+
+        这是「模型对应关系」的兜底：正常情况下各分支已经回滚，
+        但任何遗漏的路径都会在这里被发现并纠正。
+        """
+        if not self.best_code_dir:
+            return False
+        best_model_py = os.path.join(self.best_code_dir, "model.py")
+        if not os.path.exists(best_model_py):
+            return False
+        cur = _sha256_file(MODEL_PATH)
+        want = _sha256_file(best_model_py)
+        if cur == want:
+            return True
+        self._trace("action",
+                    f"⚠ Round {self.current_round} 开始前发现工作区代码与最优快照不一致，自动恢复",
+                    f"{str(cur)[:8]} → {str(want)[:8]}")
+        return self._rollback()
+
     def _lineage_report(self) -> dict:
         """沿图边回溯：最优模型的血统链 + 受无效轮次影响的下游节点。"""
         best_snap = f"snap:{os.path.basename(self.best_code_dir)}" if self.best_code_dir else ""
