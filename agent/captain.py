@@ -1326,8 +1326,9 @@ print(json.dumps({{
                 self._add_outcome(rnd, "INVALID（指标不可用，回退）")
 
             else:  # STAGNANT
-                print(f"  ⏸️ STAGNANT — 无显著变化")
-                self._add_outcome(rnd, "STAGNANT（在噪声阈值内，保留现状）")
+                print(f"  ⏸️ STAGNANT — 无显著变化，回退到最优版本")
+                self._add_outcome(rnd, "STAGNANT（在噪声阈值内，回退）")
+                self._rollback()
 
         print(f"\n{'='*60}\nEvolution complete.\n{'='*60}")
 

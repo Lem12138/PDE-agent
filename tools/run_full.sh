@@ -42,6 +42,6 @@ fi
 # ---- 启动主流程，输出续写到同一个日志 ----
 exec "$PY" agent/captain.py \
   --data "/home/apde/pde_project/new_dataset/PDEBench/1D/diffusion-sorption/1D_diff-sorp_NA_NA.h5" \
-  --max_rounds 2 \
+  --max_rounds 5 \
   --num-workers 4 \
   --sigma 0.05 >> "$LOG" 2>&1
