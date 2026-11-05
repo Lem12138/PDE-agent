@@ -196,6 +196,11 @@ def main():
     train_data = (train_raw - mean) / std
     val_data = (val_raw - mean) / std
 
+    # 归一化统计量必须存下来：evaluate.py 要用同一套参数处理测试集，
+    # 否则模型看到的是分布完全不同的输入。
+    with open(os.path.join(args.save_dir, "norm_stats.json"), "w") as _f:
+        json.dump({"mean": float(mean), "std": float(std)}, _f)
+
     train_loader = DataLoader(PDEDataset(train_data), batch_size=args.batch_size,
                               shuffle=True, num_workers=args.num_workers,
                               pin_memory=False if args.num_workers == 0 else True,

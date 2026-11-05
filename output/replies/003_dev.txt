@@ -1,12 +1,98 @@
-本轮聚焦 **seg1 的高频截断误差**：FNO 的谱卷积本质是低通算子，早期陡前沿的高频能量被 modes 截断丢弃最多，因此只提高 `FNO1d` 的 `modes`（并小幅提升 `width` 维持 sorption 非线性项的逐点容量），不动 forward 接口与 I/O shape。
+本轮在 **FNO1d** 的每个 Fourier block 里并联一条 `kernel_size=3` 的局部分支（离散差分算子），用 `gamma`（初值 0）做残差缩放，使该分支**初始化时为 no-op**，从而保护已饱和的 seg2/seg3，只在高频残差方向生长。
 
-**改动点**：`FNO1d.__init__` 默认参数 `modes=16 → 32`（2×，专注补偿 seg1 陡前沿的高频分量）、`width=64 → 96`（1.5×，保 Langmuir 型非线性在陡变处的表示能力）。`modes=32 ≪ N/2+1=513`，安全；`width` 只改变通道维，`forward` 里 `fc0`/谱卷积/`fc1` 会自动适配，padding 逻辑不变，故输出仍为 `(B, N, 1)`，空间分辨率 N 完全保持。
+**改哪、为什么：**
+- `__init__`：在 `w0..w3` 之后新增 `local_conv0..3`（`Conv1d(width, width, k=3, pad=1)`，小尺度初始化）+ `gamma0..3`（`zeros(1)`，可学习标量）。卷积 `kernel=3, padding=1` **保持 N 不变**，`gamma=0` 保证初始 no-op。
+- `forward`：把每个 block 的 `x = x1 + x2` 改为 `x = x1 + x2 + self.gammaK * self.local_convK(x)`。谱分支管全局低频（保 seg2/seg3），局部分支补被 modes 截断的陡峭锋面高频（攻 seg1）。
 
-（注：`modes`/`width` 改变会导致谱权重与全连接层 shape 变化，属容量提升的预期结果；若框架做 warm-start 需 strict=False 或用新初始化重训。）
+**I/O 与 shape 检查**：`local_conv(Conv1d, k=3, pad=1)` 输入输出长度不变；`gamma` 为标量逐元素广播；全程在 `(B, width, Nx)` 上相加，`forward` 输入 `(B,N,T_in)`→输出 `(B,N,1)` 不变。
+
+**唯一性说明**：FNO2d/FNO3d 的 `forward` 里 conv block 文本与 FNO1d 完全一致，故不能用单个 conv block 做 SEARCH；我用 `x = x.permute(0, 2, 1)` + `# pad the domain` 作为锚点，仅 FNO1d 具备该组合（2D 是 `permute(0,3,1,2)`，3D 是 `permute(0,4,1,2,3)`），保证 SEARCH 唯一。
 
 FILE: model.py
 <<<<<<< SEARCH
-    def __init__(self, num_channels, modes=16, width=64, initial_step=10):
+        self.w0 = nn.Conv1d(self.width, self.width, 1)
+        self.w1 = nn.Conv1d(self.width, self.width, 1)
+        self.w2 = nn.Conv1d(self.width, self.width, 1)
+        self.w3 = nn.Conv1d(self.width, self.width, 1)
 =======
-    def __init__(self, num_channels, modes=32, width=96, initial_step=10):
+        self.w0 = nn.Conv1d(self.width, self.width, 1)
+        self.w1 = nn.Conv1d(self.width, self.width, 1)
+        self.w2 = nn.Conv1d(self.width, self.width, 1)
+        self.w3 = nn.Conv1d(self.width, self.width, 1)
+
+        # Local stencil (finite-difference) branches, parallel to spectral conv,
+        # to recover high-frequency / sharp-gradient content truncated by modes.
+        # kernel_size=3, padding=1 keeps the spatial length N unchanged.
+        self.local_conv0 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
+        self.local_conv1 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
+        self.local_conv2 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
+        self.local_conv3 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
+
+        # Residual scaling, initialized to 0 -> local branch is a no-op at start.
+        self.gamma0 = nn.Parameter(torch.zeros(1))
+        self.gamma1 = nn.Parameter(torch.zeros(1))
+        self.gamma2 = nn.Parameter(torch.zeros(1))
+        self.gamma3 = nn.Parameter(torch.zeros(1))
+
+        # Small-scale init for the local stencil branches.
+        for _lc in (self.local_conv0, self.local_conv1, self.local_conv2, self.local_conv3):
+            nn.init.normal_(_lc.weight, std=0.01)
+            if _lc.bias is not None:
+                nn.init.zeros_(_lc.bias)
 >>>>>>> REPLACE
+
+FILE: model.py
+<<<<<<< SEARCH
+        x = x.permute(0, 2, 1)
+
+        # pad the domain if input is non-periodic
+        x = F.pad(x, [0, self.padding])
+
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+=======
+        x = x.permute(0, 2, 1)
+
+        # pad the domain if input is non-periodic
+        x = F.pad(x, [0, self.padding])
+
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2 + self.gamma0 * self.local_conv0(x)
+        x = F.gelu(x)
+
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2 + self.gamma1 * self.local_conv1(x)
+        x = F.gelu(x)
+
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2 + self.gamma2 * self.local_conv2(x)
+        x = F.gelu(x)
+
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2 + self.gamma3 * self.local_conv3(x)
+>>>>>>> REPLACE
+
+改动后：
+- `local_convK` 为 `Conv1d(k=3, pad=1)`，空间长度 N 不变，`gamma=0` 时输出与原来完全一致（no-op），checkpoint 中旧权重可平滑复用（新增参数量极小，若框架 `strict=False` 加载不会报错）。
+- 训练开始后 `gamma` 从 0 逐步生长，局部分支仅在被高频残差推动的方向（sorption 锋面）起作用，避免扰动已≈0 的 seg3。
+- 验证重点看 seg1 是否下降 10–30%；若 seg2/seg3 抬头 >10%，说明注入高频过量，可把 `gamma` 初值进一步压小或对 `local_conv` 加 weight decay（回退路径）。

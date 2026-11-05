@@ -1,140 +1,522 @@
-"""MGNO1d — Multi-Grid Neural Operator for 1D Burgers.
+"""
+FNO. Implementation taken and modified from
+https://github.com/zongyi-li/fourier_neural_operator
 
-A multi-scale operator that processes the input at several spatial
-resolutions and fuses the results. Combines spectral (Fourier) and
-spatial (convolutional) processing at each scale.
+MIT License
+
+Copyright (c) 2020 Zongyi Li
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 """
 
+from __future__ import annotations
+
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class SpectralConv1d(nn.Module):
-    """1D Fourier spectral convolution – same as FNO baseline."""
-
-    def __init__(self, in_channels: int, out_channels: int, modes: int):
+    def __init__(self, in_channels, out_channels, modes1):
         super().__init__()
+
+        """
+        1D Fourier layer. It does FFT, linear transform, and Inverse FFT.
+        """
+
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.modes = modes
-        scale = 1.0 / (in_channels * out_channels)
+        self.modes1 = (
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
+        )
+
+        # Domain-padding ratio for the spectral operator: zero-pad the spatial
+        # axis by `pad_ratio * N` before the FFT and crop it back after the
+        # inverse FFT. Mitigates Gibbs ringing / high-frequency aliasing caused
+        # by the implicit periodicity assumption at a non-periodic boundary
+        # (inlet Dirichlet / steep sorption front). Adds no trainable params.
+        self.pad_ratio = 0.5
+
+        self.scale = 1 / (in_channels * out_channels)
         self.weights1 = nn.Parameter(
-            scale * torch.rand(in_channels, out_channels, modes, dtype=torch.cfloat)
+            self.scale
+            * torch.rand(in_channels, out_channels, self.modes1, dtype=torch.cfloat)
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, C, N = x.shape
-        eff_modes = min(self.modes, N // 2 + 1)
-        x_ft = torch.fft.rfft(x, dim=-1)
-        out_ft = torch.zeros(B, self.out_channels, N // 2 + 1,
-                             dtype=torch.cfloat, device=x.device)
-        out_ft[:, :, :eff_modes] = torch.einsum(
-            'bix,iox->box', x_ft[:, :, :eff_modes],
-            self.weights1[:, :, :eff_modes]
+    # Complex multiplication
+    def compl_mul1d(self, input, weights):
+        # (batch, in_channel, x ), (in_channel, out_channel, x) -> (batch, out_channel, x)
+        return torch.einsum("bix,iox->box", input, weights)
+
+    def forward(self, x):
+        batchsize = x.shape[0]
+        N = x.shape[-1]
+
+        # --- domain padding (before FFT) -------------------------------------
+        # Zero-pad the spatial axis on the right so that the (non-periodic)
+        # boundary is separated from the signal support in the periodic
+        # extension used by rfft. Reduces Gibbs / aliasing at sharp fronts.
+        if self.pad_ratio > 0:
+            pad = int(self.pad_ratio * N)
+            if pad > 0:
+                x = F.pad(x, (0, pad))
+        Np = x.shape[-1]
+
+        # Compute Fourier coefficients up to factor of e^(- something constant)
+        x_ft = torch.fft.rfft(x)
+
+        # Multiply relevant Fourier modes
+        out_ft = torch.zeros(
+            batchsize,
+            self.out_channels,
+            Np // 2 + 1,
+            device=x.device,
+            dtype=torch.cfloat,
         )
-        return torch.fft.irfft(out_ft, n=N, dim=-1)
+        m = min(self.modes1, x_ft.shape[-1])
+        out_ft[:, :, :m] = self.compl_mul1d(x_ft[:, :, :m], self.weights1[:, :, :m])
+
+        # Return to physical space (padded length)
+        out = torch.fft.irfft(out_ft, n=Np)
+
+        # --- crop back to the original spatial length -------------------------
+        if Np != N:
+            out = out[..., :N]
+        return out
 
 
-class MGScaleBlock(nn.Module):
-    """One scale of multi-grid processing: spectral + spatial path."""
-
-    def __init__(self, width: int, modes: int):
+class FNO1d(nn.Module):
+    def __init__(self, num_channels, modes=12, width=32, initial_step=10):
         super().__init__()
-        self.spectral = SpectralConv1d(width, width, modes)
-        self.spatial = nn.Conv1d(width, width, 1)
-        self.norm = nn.GroupNorm(min(8, width), width)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return F.gelu(self.norm(self.spectral(x) + self.spatial(x)))
+        """
+        The overall network. It contains 4 layers of the Fourier layer.
+        1. Lift the input to the desire channel dimension by self.fc0 .
+        2. 4 layers of the integral operators u' = (W + K)(u).
+            W defined by self.w; K defined by self.conv .
+        3. Project from the channel space to the output space by self.fc1 and self.fc2 .
+
+        input: the solution of the initial condition and location (a(x), x)
+        input shape: (batchsize, x=s, c=2)
+        output: the solution of a later timestep
+        output shape: (batchsize, x=s, c=1)
+        """
+
+        self.modes1 = modes
+        self.width = width
+        self.padding = 2  # pad the domain if input is non-periodic
+        self.fc0 = nn.Linear(
+            initial_step * num_channels + 1, self.width
+        )  # input channel is 2: (a(x), x)
+
+        self.conv0 = SpectralConv1d(self.width, self.width, self.modes1)
+        self.conv1 = SpectralConv1d(self.width, self.width, self.modes1)
+        self.conv2 = SpectralConv1d(self.width, self.width, self.modes1)
+        self.conv3 = SpectralConv1d(self.width, self.width, self.modes1)
+        self.w0 = nn.Conv1d(self.width, self.width, 1)
+        self.w1 = nn.Conv1d(self.width, self.width, 1)
+        self.w2 = nn.Conv1d(self.width, self.width, 1)
+        self.w3 = nn.Conv1d(self.width, self.width, 1)
+
+        # Local stencil (finite-difference) branches, parallel to spectral conv,
+        # to recover high-frequency / sharp-gradient content truncated by modes.
+        # kernel_size=3, padding=1 keeps the spatial length N unchanged.
+        self.local_conv0 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
+        self.local_conv1 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
+        self.local_conv2 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
+        self.local_conv3 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
+
+        # Residual scaling, initialized to 0 -> local branch is a no-op at start.
+        self.gamma0 = nn.Parameter(torch.zeros(1))
+        self.gamma1 = nn.Parameter(torch.zeros(1))
+        self.gamma2 = nn.Parameter(torch.zeros(1))
+        self.gamma3 = nn.Parameter(torch.zeros(1))
+
+        # Small-scale init for the local stencil branches.
+        for _lc in (self.local_conv0, self.local_conv1, self.local_conv2, self.local_conv3):
+            nn.init.normal_(_lc.weight, std=0.01)
+            if _lc.bias is not None:
+                nn.init.zeros_(_lc.bias)
+
+        self.fc1 = nn.Linear(self.width, 128)
+        self.fc2 = nn.Linear(128, num_channels)
+
+    def forward(self, x, grid):
+        # x dim = [b, x1, t*v]
+        x = torch.cat((x, grid), dim=-1)
+        x = self.fc0(x)
+        x = x.permute(0, 2, 1)
+
+        # pad the domain if input is non-periodic
+        x = F.pad(x, [0, self.padding])
+
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2 + self.gamma0 * self.local_conv0(x)
+        x = F.gelu(x)
+
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2 + self.gamma1 * self.local_conv1(x)
+        x = F.gelu(x)
+
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2 + self.gamma2 * self.local_conv2(x)
+        x = F.gelu(x)
+
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2 + self.gamma3 * self.local_conv3(x)
+
+        x = x[..., : -self.padding]
+        x = x.permute(0, 2, 1)
+        x = self.fc1(x)
+        x = F.gelu(x)
+        x = self.fc2(x)
+        return x.unsqueeze(-2)
 
 
-class MGNO1d(nn.Module):
-    """Multi-Grid Neural Operator with multi-scale spectral processing.
-
-    Projects input to multiple resolution levels via strided pooling,
-    processes each scale independently with spectral conv blocks,
-    then fuses results via upsampling and summation.
-
-    Args:
-        modes: Fourier modes per scale block.
-        width: Hidden channel width.
-        in_channels: Number of input time steps (T_in).
-        out_channels: Ignored — always outputs scalar field.
-        n_layers: Number of blocks per scale (total layers = n_layers × n_scales).
-        n_scales: Number of resolution levels (default 3).
-    """
-
-    def __init__(self, modes: int = 24, width: int = 32, in_channels: int = 10,
-                 out_channels: int = 1, n_layers: int = 4, n_scales: int = 3, **kwargs):
+class SpectralConv2d_fast(nn.Module):
+    def __init__(self, in_channels, out_channels, modes1, modes2):
         super().__init__()
-        blocks_per_scale = max(1, n_layers // n_scales)
 
-        # ── Input projection ──
-        self.fc_in = nn.Linear(in_channels + 1, width)
+        """
+        2D Fourier layer. It does FFT, linear transform, and Inverse FFT.
+        """
 
-        # ── Per-scale processing chains ──
-        self.scale_blocks = nn.ModuleList()
-        for s in range(n_scales):
-            scale_chain = nn.ModuleList([
-                MGScaleBlock(width, modes)
-                for _ in range(blocks_per_scale)
-            ])
-            self.scale_blocks.append(scale_chain)
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.modes1 = (
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
+        )
+        self.modes2 = modes2
 
-        # ── Scale fusion weights (learnable) ──
-        self.scale_weights = nn.Parameter(torch.ones(n_scales) / n_scales)
-
-        # ── Output head ──
-        self.head = nn.Sequential(
-            nn.Linear(width, 128),
-            nn.GELU(),
-            nn.Linear(128, 1),
+        self.scale = 1 / (in_channels * out_channels)
+        self.weights1 = nn.Parameter(
+            self.scale
+            * torch.rand(
+                in_channels, out_channels, self.modes1, self.modes2, dtype=torch.cfloat
+            )
+        )
+        self.weights2 = nn.Parameter(
+            self.scale
+            * torch.rand(
+                in_channels, out_channels, self.modes1, self.modes2, dtype=torch.cfloat
+            )
         )
 
-    def get_grid(self, B, N, device):
-        return torch.linspace(0, 1, N, device=device).view(1, N, 1).repeat(B, 1, 1)
+    # Complex multiplication
+    def compl_mul2d(self, input, weights):
+        # (batch, in_channel, x,y ), (in_channel, out_channel, x,y) -> (batch, out_channel, x,y)
+        return torch.einsum("bixy,ioxy->boxy", input, weights)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, N, T_in)  →  output: (B, N)
-        B, N, T_in = x.shape
+    def forward(self, x):
+        batchsize = x.shape[0]
+        # Compute Fourier coefficients up to factor of e^(- something constant)
+        x_ft = torch.fft.rfft2(x)
 
-        # Input projection
-        grid = self.get_grid(B, N, x.device)
-        x = torch.cat([x, grid], dim=-1)        # (B, N, T_in+1)
-        x = self.fc_in(x)                       # (B, N, width)
-        x = x.permute(0, 2, 1)                  # (B, width, N)
+        # Multiply relevant Fourier modes
+        out_ft = torch.zeros(
+            batchsize,
+            self.out_channels,
+            x.size(-2),
+            x.size(-1) // 2 + 1,
+            dtype=torch.cfloat,
+            device=x.device,
+        )
+        out_ft[:, :, : self.modes1, : self.modes2] = self.compl_mul2d(
+            x_ft[:, :, : self.modes1, : self.modes2], self.weights1
+        )
+        out_ft[:, :, -self.modes1 :, : self.modes2] = self.compl_mul2d(
+            x_ft[:, :, -self.modes1 :, : self.modes2], self.weights2
+        )
 
-        # Multi-scale processing
-        outputs = []
-        n_scales = len(self.scale_blocks)
-
-        for s, blocks in enumerate(self.scale_blocks):
-            # Downsample to current scale
-            scale_factor = 2 ** s
-            if scale_factor > 1:
-                x_s = F.avg_pool1d(x, kernel_size=scale_factor, stride=scale_factor)
-            else:
-                x_s = x
-
-            # Process at this scale
-            for blk in blocks:
-                x_s = blk(x_s)
-
-            # Upsample back to original resolution
-            if x_s.shape[-1] != N:
-                x_s = F.interpolate(x_s, size=N, mode='linear', align_corners=True)
-
-            outputs.append(x_s)
-
-        # Weighted fusion of scales
-        w = F.softmax(self.scale_weights, dim=0)
-        fused = sum(w[i] * outputs[i] for i in range(n_scales))
-
-        # Output head
-        fused = fused.permute(0, 2, 1)           # (B, N, width)
-        out = self.head(fused)                   # (B, N, 1)
-        return out.squeeze(-1)                   # (B, N)
+        # Return to physical space
+        return torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
 
 
-Model = MGNO1d
+class FNO2d(nn.Module):
+    def __init__(self, num_channels, modes1=12, modes2=12, width=20, initial_step=10):
+        super().__init__()
+
+        """
+        The overall network. It contains 4 layers of the Fourier layer.
+        1. Lift the input to the desire channel dimension by self.fc0 .
+        2. 4 layers of the integral operators u' = (W + K)(u).
+            W defined by self.w; K defined by self.conv .
+        3. Project from the channel space to the output space by self.fc1 and self.fc2 .
+
+        input: the solution of the previous 10 timesteps + 2 locations (u(t-10, x, y), ..., u(t-1, x, y),  x, y)
+        input shape: (batchsize, x, y, c)
+        output: the solution of the next timestep
+        output shape: (batchsize, x, y, c)
+        """
+
+        self.modes1 = modes1
+        self.modes2 = modes2
+        self.width = width
+        self.padding = 2  # pad the domain if input is non-periodic
+        self.fc0 = nn.Linear(initial_step * num_channels + 2, self.width)
+        # input channel is 12: the solution of the previous 10 timesteps + 2 locations (u(t-10, x, y), ..., u(t-1, x, y),  x, y)
+
+        self.conv0 = SpectralConv2d_fast(
+            self.width, self.width, self.modes1, self.modes2
+        )
+        self.conv1 = SpectralConv2d_fast(
+            self.width, self.width, self.modes1, self.modes2
+        )
+        self.conv2 = SpectralConv2d_fast(
+            self.width, self.width, self.modes1, self.modes2
+        )
+        self.conv3 = SpectralConv2d_fast(
+            self.width, self.width, self.modes1, self.modes2
+        )
+        self.w0 = nn.Conv2d(self.width, self.width, 1)
+        self.w1 = nn.Conv2d(self.width, self.width, 1)
+        self.w2 = nn.Conv2d(self.width, self.width, 1)
+        self.w3 = nn.Conv2d(self.width, self.width, 1)
+
+        self.fc1 = nn.Linear(self.width, 128)
+        self.fc2 = nn.Linear(128, num_channels)
+
+    def forward(self, x, grid):
+        # x dim = [b, x1, x2, t*v]
+        x = torch.cat((x, grid), dim=-1)
+        x = self.fc0(x)
+        x = x.permute(0, 3, 1, 2)
+
+        # Pad tensor with boundary condition
+        x = F.pad(x, [0, self.padding, 0, self.padding])
+
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+
+        x = x[..., : -self.padding, : -self.padding]  # Unpad the tensor
+        x = x.permute(0, 2, 3, 1)
+        x = self.fc1(x)
+        x = F.gelu(x)
+        x = self.fc2(x)
+
+        return x.unsqueeze(-2)
+
+
+class SpectralConv3d(nn.Module):
+    def __init__(self, in_channels, out_channels, modes1, modes2, modes3):
+        super().__init__()
+
+        """
+        3D Fourier layer. It does FFT, linear transform, and Inverse FFT.
+        """
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.modes1 = (
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
+        )
+        self.modes2 = modes2
+        self.modes3 = modes3
+
+        self.scale = 1 / (in_channels * out_channels)
+        self.weights1 = nn.Parameter(
+            self.scale
+            * torch.rand(
+                in_channels,
+                out_channels,
+                self.modes1,
+                self.modes2,
+                self.modes3,
+                dtype=torch.cfloat,
+            )
+        )
+        self.weights2 = nn.Parameter(
+            self.scale
+            * torch.rand(
+                in_channels,
+                out_channels,
+                self.modes1,
+                self.modes2,
+                self.modes3,
+                dtype=torch.cfloat,
+            )
+        )
+        self.weights3 = nn.Parameter(
+            self.scale
+            * torch.rand(
+                in_channels,
+                out_channels,
+                self.modes1,
+                self.modes2,
+                self.modes3,
+                dtype=torch.cfloat,
+            )
+        )
+        self.weights4 = nn.Parameter(
+            self.scale
+            * torch.rand(
+                in_channels,
+                out_channels,
+                self.modes1,
+                self.modes2,
+                self.modes3,
+                dtype=torch.cfloat,
+            )
+        )
+
+    # Complex multiplication
+    def compl_mul3d(self, input, weights):
+        # (batch, in_channel, x,y,t ), (in_channel, out_channel, x,y,t) -> (batch, out_channel, x,y,t)
+        return torch.einsum("bixyz,ioxyz->boxyz", input, weights)
+
+    def forward(self, x):
+        batchsize = x.shape[0]
+        # Compute Fourier coefficients up to factor of e^(- something constant)
+        x_ft = torch.fft.rfftn(x, dim=[-3, -2, -1])
+
+        # Multiply relevant Fourier modes
+        out_ft = torch.zeros(
+            batchsize,
+            self.out_channels,
+            x.size(-3),
+            x.size(-2),
+            x.size(-1) // 2 + 1,
+            dtype=torch.cfloat,
+            device=x.device,
+        )
+        out_ft[:, :, : self.modes1, : self.modes2, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, : self.modes1, : self.modes2, : self.modes3], self.weights1
+        )
+        out_ft[:, :, -self.modes1 :, : self.modes2, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, -self.modes1 :, : self.modes2, : self.modes3], self.weights2
+        )
+        out_ft[:, :, : self.modes1, -self.modes2 :, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, : self.modes1, -self.modes2 :, : self.modes3], self.weights3
+        )
+        out_ft[:, :, -self.modes1 :, -self.modes2 :, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, -self.modes1 :, -self.modes2 :, : self.modes3], self.weights4
+        )
+
+        # Return to physical space
+        return torch.fft.irfftn(out_ft, s=(x.size(-3), x.size(-2), x.size(-1)))
+
+
+class FNO3d(nn.Module):
+    def __init__(
+        self, num_channels, modes1=8, modes2=8, modes3=8, width=20, initial_step=10
+    ):
+        super().__init__()
+
+        """
+        The overall network. It contains 4 layers of the Fourier layer.
+        1. Lift the input to the desire channel dimension by self.fc0 .
+        2. 4 layers of the integral operators u' = (W + K)(u).
+            W defined by self.w; K defined by self.conv .
+        3. Project from the channel space to the output space by self.fc1 and self.fc2 .
+
+        input: the solution of the first 10 timesteps + 3 locations (u(1, x, y), ..., u(10, x, y),  x, y, t). It's a constant function in time, except for the last index.
+        input shape: (batchsize, x=64, y=64, t=40, c=13)
+        output: the solution of the next 40 timesteps
+        output shape: (batchsize, x=64, y=64, t=40, c=1)
+        """
+
+        self.modes1 = modes1
+        self.modes2 = modes2
+        self.modes3 = modes3
+        self.width = width
+        self.padding = 6  # pad the domain if input is non-periodic
+        self.fc0 = nn.Linear(initial_step * num_channels + 3, self.width)
+        # input channel is 12: the solution of the first 10 timesteps + 3 locations (u(1, x, y), ..., u(10, x, y),  x, y, t)
+
+        self.conv0 = SpectralConv3d(
+            self.width, self.width, self.modes1, self.modes2, self.modes3
+        )
+        self.conv1 = SpectralConv3d(
+            self.width, self.width, self.modes1, self.modes2, self.modes3
+        )
+        self.conv2 = SpectralConv3d(
+            self.width, self.width, self.modes1, self.modes2, self.modes3
+        )
+        self.conv3 = SpectralConv3d(
+            self.width, self.width, self.modes1, self.modes2, self.modes3
+        )
+        self.w0 = nn.Conv3d(self.width, self.width, 1)
+        self.w1 = nn.Conv3d(self.width, self.width, 1)
+        self.w2 = nn.Conv3d(self.width, self.width, 1)
+        self.w3 = nn.Conv3d(self.width, self.width, 1)
+        self.bn0 = torch.nn.BatchNorm3d(self.width)
+        self.bn1 = torch.nn.BatchNorm3d(self.width)
+        self.bn2 = torch.nn.BatchNorm3d(self.width)
+        self.bn3 = torch.nn.BatchNorm3d(self.width)
+
+        self.fc1 = nn.Linear(self.width, 128)
+        self.fc2 = nn.Linear(128, num_channels)
+
+    def forward(self, x, grid):
+        # x dim = [b, x1, x2, x3, t*v]
+        x = torch.cat((x, grid), dim=-1)
+        x = self.fc0(x)
+        x = x.permute(0, 4, 1, 2, 3)
+
+        # pad the domain if input is non-periodic
+        x = F.pad(x, [0, self.padding])
+
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+
+        x = x[..., : -self.padding]
+        x = x.permute(0, 2, 3, 4, 1)  # pad the domain if input is non-periodic
+        x = self.fc1(x)
+        x = F.gelu(x)
+        x = self.fc2(x)
+        return x.unsqueeze(-2)

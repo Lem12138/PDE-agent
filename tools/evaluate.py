@@ -4,10 +4,14 @@ import numpy as np
 import torch
 import h5py
 
-# Workspace on path for model import
+# 仓库根和 agent/ 都要在 path 上：
+#   - agent/ 里有 model.py（被评估的模型代码）
+#   - 仓库根用于 import tools.*
 WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if WORKSPACE not in sys.path:
-    sys.path.insert(0, WORKSPACE)
+AGENT_DIR = os.path.join(WORKSPACE, "agent")
+for _p in (AGENT_DIR, WORKSPACE):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 # Defaults (overridable via data_config.json)
 T_IN = 10          # 输入时间窗口
@@ -55,8 +59,9 @@ def compute_rel_mse(pred: np.ndarray, gt: np.ndarray) -> dict:
     per_step_mean = rel_mse_per_step.mean(axis=0)                      # (T_pred,)
 
     seg1 = float(per_step_mean[:47].mean())
-    seg2 = float(per_step_mean[47:95].mean())
-    seg3 = float(per_step_mean[95:].mean())
+    seg2 = float(per_step_mean[47:95].mean()) if len(per_step_mean) > 47 else float("nan")
+    # 预测步数不足 95 时 seg3 无定义，返回 0 而不是 nan（下游判定会跳过该段）
+    seg3 = float(per_step_mean[95:].mean()) if len(per_step_mean) > 95 else 0.0
     overall = float(per_step_mean.mean())
 
     return {"seg1": seg1, "seg2": seg2, "seg3": seg3, "overall": overall}
@@ -117,7 +122,13 @@ def compute_competition_score(metrics: dict, train_time_s: float = 0,
 
 
 def load_model(checkpoint_path: str):
-    """Load and return model from checkpoint. Tries model.py class first, falls back to checkpoint inference."""
+    """从 checkpoint 恢复模型。
+
+    用 model.py 里的类（由 Captain 换成对应快照的代码），
+    超参从 state_dict 反推，构造走 tools.model_factory 以保证与训练一致。
+    """
+    from tools.model_factory import build_model
+
     raw = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     state = raw
     for key in ["model_state_dict", "state_dict", "model"]:
@@ -125,50 +136,46 @@ def load_model(checkpoint_path: str):
             state = raw[key]
             break
 
-    # Try to use the Model class from model.py
-    try:
-        import model as _m
+    import model as _m
+    ModelClass = None
+    for name in ["FNO1d", "UNet1d", "DeepONet1d", "MGNO1d", "Model"]:
+        obj = getattr(_m, name, None)
+        if obj is not None and isinstance(obj, type):
+            ModelClass = obj
+            break
+    if ModelClass is None:
         classes = [v for v in vars(_m).values()
                    if isinstance(v, type) and issubclass(v, torch.nn.Module)
-                   and v.__module__ == 'model']
-        if classes:
-            ModelClass = classes[0]
-        else:
-            for name in ['UNet1d', 'FNO1d', 'DeepONet1d', 'MGNO1d', 'Model']:
-                obj = getattr(_m, name, None)
-                if obj is not None and isinstance(obj, type):
-                    ModelClass = obj
-                    break
-            else:
-                raise RuntimeError("No model class found")
+                   and v.__module__ == "model"]
+        if not classes:
+            raise RuntimeError("model.py 中没有可用的模型类")
+        ModelClass = classes[0]
 
-        # Try to instantiate with state-dict-inferred params
-        width = state[list(state.keys())[0]].shape[0]
-        model = ModelClass(modes=12, width=width, in_channels=10, out_channels=1)
-        model.load_state_dict(state, strict=False)
-        model.eval()
-        return model
-    except Exception:
-        pass
-
-    # Fallback: FNO-style model
-    from model import Model
-    width = state[list(state.keys())[0]].shape[0]
-    modes = None
-    for k, v in state.items():
-        if "conv" in k and "weight" in k and hasattr(v, "is_complex") and v.is_complex():
-            modes = v.shape[-1]
+    # ---- 从 state_dict 反推超参 ----
+    hp = {}
+    t_in = T_IN
+    if "fc0.weight" in state:
+        # FNO1d: fc0 = Linear(initial_step * num_channels + 1, width)
+        hp["width"] = int(state["fc0.weight"].shape[0])
+        t_in = max(1, int(state["fc0.weight"].shape[1]) - 1)
+    else:
+        first = next(iter(state.values()))
+        if first.dim() >= 2:
+            hp["width"] = int(first.shape[0])
+    for v in state.values():
+        if hasattr(v, "is_complex") and v.is_complex():
+            hp["modes"] = int(v.shape[-1])
             break
-    in_channels = 10
-    n_layers = sum(1 for k in state if k.startswith("conv") and "weights1" in k)
-    if n_layers == 0:
-        n_layers = 4
 
-    model = Model(modes=modes or 12, width=width, in_channels=in_channels,
-                  out_channels=1, n_layers=n_layers)
-    model.load_state_dict(state, strict=False)
-    model.eval()
-    return model
+    print(f"  inferred: class={ModelClass.__name__} hp={hp} T_in={t_in}")
+    net = build_model(ModelClass, hp=hp, T_IN=t_in, N_spatial=N_SPATIAL)
+    missing, unexpected = net.load_state_dict(state, strict=False)
+    if missing:
+        print(f"  [warn] 缺少参数 {len(missing)} 项，例如 {missing[:3]}")
+    if unexpected:
+        print(f"  [warn] 多余参数 {len(unexpected)} 项，例如 {unexpected[:3]}")
+    net.eval()
+    return net
 
 
 def autoregressive_rollout(model, test_data: np.ndarray, device: torch.device,
@@ -240,7 +247,7 @@ def main():
     t_in = data_cfg.get('t_in', T_IN)
     n_spatial = data_cfg.get('n_spatial', N_SPATIAL)
     # Auto-detect no_gt from config (Captain sets this during probe)
-    no_gt = no_gt or not data_cfg.get('test_has_gt', True)
+    no_gt = args.no_gt or not data_cfg.get('test_has_gt', True)
 
     # ---- Load model ----
     print(f"Loading model from {args.checkpoint} ...")
@@ -272,6 +279,16 @@ def main():
         ).permute(0, 2, 1)
         test_raw = test_tensor.numpy()
     print(f"  After resample: {test_raw.shape}")
+
+    # ---- 与训练一致的归一化 ----
+    norm_path = os.path.join(os.path.dirname(args.checkpoint), "norm_stats.json")
+    if os.path.exists(norm_path):
+        with open(norm_path, "r") as f:
+            norm = json.load(f)
+        test_raw = (test_raw - norm["mean"]) / norm["std"]
+        print(f"  Normalized with train stats: mean={norm['mean']:.6g} std={norm['std']:.6g}")
+    else:
+        print(f"  [warn] 未找到 {norm_path}，按原始尺度评估（结果可能与 val 不可比）")
 
     # ---- Detect model interface ----
     iface = _detect_model_interface(model, device, test_raw.shape[-1])
@@ -321,7 +338,7 @@ def main():
         print(f"  TOTAL:       {scores['total']:.2f}/150")
         score_path = os.path.join(args.output_dir, f"task{args.task_id}_score.json")
         with open(score_path, "w") as f:
-            json.dump({"metrics": metrics, "scores": scores, "infer_time_s": infer_time_s}, f, indent=2)
+            json.dump({"metrics": metrics, "scores": scores, "infer_time_s": infer_time}, f, indent=2)
     else:
         print(f"  Test data has only {test_raw.shape[1]} time steps; skipping scoring.")
 
