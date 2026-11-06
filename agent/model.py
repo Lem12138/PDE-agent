@@ -47,13 +47,6 @@ class SpectralConv1d(nn.Module):
             modes1
         )
 
-        # Domain-padding ratio for the spectral operator: zero-pad the spatial
-        # axis by `pad_ratio * N` before the FFT and crop it back after the
-        # inverse FFT. Mitigates Gibbs ringing / high-frequency aliasing caused
-        # by the implicit periodicity assumption at a non-periodic boundary
-        # (inlet Dirichlet / steep sorption front). Adds no trainable params.
-        self.pad_ratio = 0.5
-
         self.scale = 1 / (in_channels * out_channels)
         self.weights1 = nn.Parameter(
             self.scale
@@ -67,18 +60,6 @@ class SpectralConv1d(nn.Module):
 
     def forward(self, x):
         batchsize = x.shape[0]
-        N = x.shape[-1]
-
-        # --- domain padding (before FFT) -------------------------------------
-        # Zero-pad the spatial axis on the right so that the (non-periodic)
-        # boundary is separated from the signal support in the periodic
-        # extension used by rfft. Reduces Gibbs / aliasing at sharp fronts.
-        if self.pad_ratio > 0:
-            pad = int(self.pad_ratio * N)
-            if pad > 0:
-                x = F.pad(x, (0, pad))
-        Np = x.shape[-1]
-
         # Compute Fourier coefficients up to factor of e^(- something constant)
         x_ft = torch.fft.rfft(x)
 
@@ -86,20 +67,16 @@ class SpectralConv1d(nn.Module):
         out_ft = torch.zeros(
             batchsize,
             self.out_channels,
-            Np // 2 + 1,
+            x.size(-1) // 2 + 1,
             device=x.device,
             dtype=torch.cfloat,
         )
-        m = min(self.modes1, x_ft.shape[-1])
-        out_ft[:, :, :m] = self.compl_mul1d(x_ft[:, :, :m], self.weights1[:, :, :m])
+        out_ft[:, :, : self.modes1] = self.compl_mul1d(
+            x_ft[:, :, : self.modes1], self.weights1
+        )
 
-        # Return to physical space (padded length)
-        out = torch.fft.irfft(out_ft, n=Np)
-
-        # --- crop back to the original spatial length -------------------------
-        if Np != N:
-            out = out[..., :N]
-        return out
+        # Return to physical space
+        return torch.fft.irfft(out_ft, n=x.size(-1))
 
 
 class FNO1d(nn.Module):
@@ -135,25 +112,12 @@ class FNO1d(nn.Module):
         self.w2 = nn.Conv1d(self.width, self.width, 1)
         self.w3 = nn.Conv1d(self.width, self.width, 1)
 
-        # Local stencil (finite-difference) branches, parallel to spectral conv,
-        # to recover high-frequency / sharp-gradient content truncated by modes.
-        # kernel_size=3, padding=1 keeps the spatial length N unchanged.
-        self.local_conv0 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
-        self.local_conv1 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
-        self.local_conv2 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
-        self.local_conv3 = nn.Conv1d(self.width, self.width, kernel_size=3, padding=1, groups=1)
-
-        # Residual scaling, initialized to 0 -> local branch is a no-op at start.
-        self.gamma0 = nn.Parameter(torch.zeros(1))
-        self.gamma1 = nn.Parameter(torch.zeros(1))
-        self.gamma2 = nn.Parameter(torch.zeros(1))
-        self.gamma3 = nn.Parameter(torch.zeros(1))
-
-        # Small-scale init for the local stencil branches.
-        for _lc in (self.local_conv0, self.local_conv1, self.local_conv2, self.local_conv3):
-            nn.init.normal_(_lc.weight, std=0.01)
-            if _lc.bias is not None:
-                nn.init.zeros_(_lc.bias)
+        # Local depthwise conv branch (high-frequency bypass) to compensate
+        # the low-pass truncation of the spectral convolution at sharp fronts.
+        self.local_conv = nn.Conv1d(
+            self.width, self.width, kernel_size=3, padding=1, groups=self.width
+        )
+        self.gamma = nn.Parameter(torch.tensor(0.1))
 
         self.fc1 = nn.Linear(self.width, 128)
         self.fc2 = nn.Linear(128, num_channels)
@@ -169,22 +133,26 @@ class FNO1d(nn.Module):
 
         x1 = self.conv0(x)
         x2 = self.w0(x)
-        x = x1 + x2 + self.gamma0 * self.local_conv0(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
         x = F.gelu(x)
 
         x1 = self.conv1(x)
         x2 = self.w1(x)
-        x = x1 + x2 + self.gamma1 * self.local_conv1(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
         x = F.gelu(x)
 
         x1 = self.conv2(x)
         x2 = self.w2(x)
-        x = x1 + x2 + self.gamma2 * self.local_conv2(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
         x = F.gelu(x)
 
         x1 = self.conv3(x)
         x2 = self.w3(x)
-        x = x1 + x2 + self.gamma3 * self.local_conv3(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
 
         x = x[..., : -self.padding]
         x = x.permute(0, 2, 1)

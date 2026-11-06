@@ -1,109 +1,103 @@
-## 本轮修改说明
+## 本轮改动说明
 
-**改什么**：只在 `SpectralConv1d` 内部做两处改动——
-1. `__init__` 新增 `self.pad_ratio = 0.5`（纯超参，无参数、无 checkpoint 影响，因为它不是 `nn.Parameter`/buffer，state_dict 不会被污染，旧的 ckpt 仍能 load）。
-2. `forward` 里在 `rfft` 之前把最后一维右侧补零扩到约 1.5×，`irfft` 之后再裁回原长。
+**改什么**：把 R1 引入的**单条全局共享的 depthwise 局部分支**（`self.local_conv`，所有层共用同一个 3×1 核）替换为**每层独立的局部分支** `self.loc_layers`（`ModuleList`，共 4 个 `Conv1d(width, width, k=3, padding=1, padding_mode='reflect')`），并在每一层按
+`x = x + gamma * loc_layers[i](x)` 注入，位置仍在 `gelu` 之前、与 `spectral + pointwise` 的残差相加。
 
-**为什么**：diffusion‑sorption 的浓度锋面在入口附近有强梯度，域两端不满足周期性；`rfft` 隐含"场是周期的"，于是边界阶跃在频谱里形成 Gibbs 振铃，能量漏到高频后被 `modes1` 截断丢掉，误差就集中在最陡的早期段（seg1）。右侧补零让真实场与零背景平滑衔接，把边界不连续推离信号支撑区，降低混叠与截断误差（FNO 原论文的标准 padding trick）。它只作用在谱计算内部，不新增可训练参数、不改拓扑，对已光滑的 seg2 应基本中性。
+**为什么**：
+- R1 的共享 depthwise 卷积在 4 层里被**重复套用同一个空间核**，但 4 层特征所处的语义层级不同（第 0 层接近输入场，第 3 层是抽象特征），共用一个核意味着局部算子的表达力被“平均”掉，且 depthwise（`groups=width`）没有跨通道混合，无法把局部梯度信息重组到需要它的通道上——这正是 seg1（短时陡前缘/边界层）仍偏高的原因。
+- 改为**每层独立的 dense 3×1 卷积**后，每层都能按自己的特征尺度去拟合陡前缘；跨通道混合让局部算子能把谱分支抹平的前缘信息“写回”到输出通道组合里，与低通谱算子形成正交分工（谱=全局平滑输运，卷积=局部高频）。
+- 保留 `padding_mode='reflect'`（近似无流/Neumann 边界），绕开 FFT 的周期性假设在注入边界处的 Gibbs 伪振荡；`kernel_size=3, padding=1` 保证长度不变。
+- 保留标量 `gamma`（初值 0.1、可学习）作为统一的注入缩放，既保持 R1 已验证的“小初值、渐进放大”稳定训练特性，也避免新增分支在初始化时就压过谱分支（谱权重按 `1/(in*out)` 缩放，量级很小，无缩放的新卷积会主导前向）。
 
-**I/O shape 检查**：补零与裁剪都在 `SpectralConv1d.forward` 内部成对完成，`out` 最后一定是 `(B, out_channels, N)`，`N` 与进入该层时**完全一致**；`w0..w3` 的 1×1 旁路和 `local_conv*`（padding=1）路径的 N 都不受影响；`FNO1d.forward` 末尾的 `x[..., :-self.padding]` 与输出 `(B,N,1)` 完全不动。所以 `torch.randn(2,256,10) → model(x, grid)` 仍是 `(2,256,1)`。
+**shape 自检**：`fc0` 后通道=`width`，长度 `N+2`（右侧 padding=2）；`loc_layers[i]` 的 `k=3, p=1` 保持长度 `N+2`；残差相加 shape 一致；结尾 `[..., :-2]` 恢复到 `N=1024`；输出仍为 `(B, N, 1)`。**空间分辨率 N 全程不变。**
 
-**顺带做的稳健化**：模态切片用 `m = min(self.modes1, x_ft.shape[-1])` 双向夹紧，即使以后 `pad_ratio` 调大或 `modes` 调大也不会越界。
-
-FILE: model.py
-<<<<<<< SEARCH
-        self.modes1 = (
-            # Number of Fourier modes to multiply, at most floor(N/2) + 1
-            modes1
-        )
-
-        self.scale = 1 / (in_channels * out_channels)
-        self.weights1 = nn.Parameter(
-            self.scale
-            * torch.rand(in_channels, out_channels, self.modes1, dtype=torch.cfloat)
-        )
-=======
-        self.modes1 = (
-            # Number of Fourier modes to multiply, at most floor(N/2) + 1
-            modes1
-        )
-
-        # Domain-padding ratio for the spectral operator: zero-pad the spatial
-        # axis by `pad_ratio * N` before the FFT and crop it back after the
-        # inverse FFT. Mitigates Gibbs ringing / high-frequency aliasing caused
-        # by the implicit periodicity assumption at a non-periodic boundary
-        # (inlet Dirichlet / steep sorption front). Adds no trainable params.
-        self.pad_ratio = 0.5
-
-        self.scale = 1 / (in_channels * out_channels)
-        self.weights1 = nn.Parameter(
-            self.scale
-            * torch.rand(in_channels, out_channels, self.modes1, dtype=torch.cfloat)
-        )
->>>>>>> REPLACE
+**参数量/耗时**：每层新增 `3×width×width`（width=32 时约 3.1k），4 层共约 12k；1D k=3 卷积计算量极小，不再共享但总量仍在原量级，不影响 <2min 约束。
 
 FILE: model.py
 <<<<<<< SEARCH
-    def forward(self, x):
-        batchsize = x.shape[0]
-        # Compute Fourier coefficients up to factor of e^(- something constant)
-        x_ft = torch.fft.rfft(x)
-
-        # Multiply relevant Fourier modes
-        out_ft = torch.zeros(
-            batchsize,
-            self.out_channels,
-            x.size(-1) // 2 + 1,
-            device=x.device,
-            dtype=torch.cfloat,
+        # Local depthwise conv branch (high-frequency bypass) to compensate
+        # the low-pass truncation of the spectral convolution at sharp fronts.
+        self.local_conv = nn.Conv1d(
+            self.width, self.width, kernel_size=3, padding=1, groups=self.width
         )
-        out_ft[:, :, : self.modes1] = self.compl_mul1d(
-            x_ft[:, :, : self.modes1], self.weights1
-        )
-
-        # Return to physical space
-        return torch.fft.irfft(out_ft, n=x.size(-1))
+        self.gamma = nn.Parameter(torch.tensor(0.1))
 =======
-    def forward(self, x):
-        batchsize = x.shape[0]
-        N = x.shape[-1]
-
-        # --- domain padding (before FFT) -------------------------------------
-        # Zero-pad the spatial axis on the right so that the (non-periodic)
-        # boundary is separated from the signal support in the periodic
-        # extension used by rfft. Reduces Gibbs / aliasing at sharp fronts.
-        if self.pad_ratio > 0:
-            pad = int(self.pad_ratio * N)
-            if pad > 0:
-                x = F.pad(x, (0, pad))
-        Np = x.shape[-1]
-
-        # Compute Fourier coefficients up to factor of e^(- something constant)
-        x_ft = torch.fft.rfft(x)
-
-        # Multiply relevant Fourier modes
-        out_ft = torch.zeros(
-            batchsize,
-            self.out_channels,
-            Np // 2 + 1,
-            device=x.device,
-            dtype=torch.cfloat,
+        # Per-layer local conv branch (high-frequency bypass). It compensates
+        # the low-pass truncation of the spectral convolution at sharp fronts
+        # and avoids the periodic assumption of the FFT at the (no-flux /
+        # injection) boundaries. Each layer owns its own kernel because the
+        # feature hierarchy differs across depth.
+        self.loc_layers = nn.ModuleList(
+            [
+                nn.Conv1d(
+                    self.width,
+                    self.width,
+                    kernel_size=3,
+                    padding=1,
+                    padding_mode="reflect",
+                )
+                for _ in range(4)
+            ]
         )
-        m = min(self.modes1, x_ft.shape[-1])
-        out_ft[:, :, :m] = self.compl_mul1d(x_ft[:, :, :m], self.weights1[:, :, :m])
-
-        # Return to physical space (padded length)
-        out = torch.fft.irfft(out_ft, n=Np)
-
-        # --- crop back to the original spatial length -------------------------
-        if Np != N:
-            out = out[..., :N]
-        return out
+        self.gamma = nn.Parameter(torch.tensor(0.1))
 >>>>>>> REPLACE
 
-**验证要点（跑完后请你核对）**
-- `seg1` 相对改善 >10% 才算真信号；`seg2` 应基本持平。
-- 若 `seg2` 掉 >10%，把 `self.pad_ratio = 0.5` 改成 `0.25` 删块重试（只需改一行）。
-- `overall` 不得上升（护栏）。
-- 推理时间：FFT 长度 1026→1539（非 2 的幂，混合基），谱层开销约 +30–40%，确认整体仍 <2min。
-- 若再次 STAGNANT：说明 1e-6 已是 float32 精度地板，方向应转向效率/推理时间，而不是继续在精度上打补丁。
+<<<<<<< SEARCH
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
+        x = F.gelu(x)
+=======
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x = x + self.gamma * self.loc_layers[0](x)
+        x = F.gelu(x)
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
+        x = F.gelu(x)
+=======
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x = x + self.gamma * self.loc_layers[1](x)
+        x = F.gelu(x)
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
+        x = F.gelu(x)
+=======
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x = x + self.gamma * self.loc_layers[2](x)
+        x = F.gelu(x)
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
+
+        x = x[..., : -self.padding]
+=======
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+        x = x + self.gamma * self.loc_layers[3](x)
+
+        x = x[..., : -self.padding]
+>>>>>>> REPLACE
+
+**回退预案（供裁决参考）**：若 seg2 相对 3.78e-6 恶化 >10%（局部分支抢占平滑输运、rollout 不稳），下一轮把 `loc_layers` 的 `padding_mode` 改回零填充并把 `gamma` 初值降到 0.05，或退为 `kernel_size=1` 的纯逐点；若 seg1 未降，则把 modes 提到 16 以上配合局部分支使用。

@@ -1,43 +1,47 @@
 ## 诊断
 
-先厘清哪一段是真正的短板：**seg3=0.0 是退化/不可判定值（baseline 为 0），不是真正的短板**；真正的短板是 **seg1≈6.56e-6，比 seg2≈4.68e-6 高约 40%**。而且误差随传播时间反而下降（seg2<seg1），这与"误差雪崩"相反 —— 说明瓶颈不在长时累积，而在**早期时刻**：diffusion‑sorption 的浓度锋面在初期最陡、且贴近入口边界，随时间扩散后场变光滑，所以后期反而更准。
+先看指标结构：seg3=0.0 属于不可判定段（baseline 为 0/缺失），不参与优化；真正可比的是 **seg1=5.70e-6 与 seg2=3.78e-6**。seg1（短时）误差比 seg2 高约 50%，且 overall 几乎由 seg1 主导——**seg1 是当前唯一的短板**，seg2 反而更好。
 
-根因：FNO 的傅里叶层对空间做**隐式周期性 FFT + 低模态截断**，非周期的陡边界（入口 Dirichlet / sorption 锋面）在 FFT 里形成边界不连续，产生 Gibbs 振铃与高频混叠，恰好把误差泄漏在"最陡"的 seg1。**另外需诚实说明：误差已在 ~1e-6，接近 float32 精度地板（相对 ~10 倍 eps），可提升的绝对空间很小**，所以本轮目标是"把边界引起的高频泄漏压下去"，而不是指望数量级跃迁。
+这与物理机制吻合：本数据是 1D diffusion-sorption（`1D_diff-sorp`，场值 ∈[0,1]，含非线性吸附/阻滞效应），早时段的解由**注入边界（x=0 附近）的边界层 + 一个较陡的吸附/输运前缘**主导。FNO 的谱卷积完全建立在 FFT 上，天然隐含**周期性假设 + 低频谱偏置**：在非周期边界处引入 Gibbs 振铃、在前缘处把陡梯度抹平。这部分误差在短时段最集中，正好对应 seg1 偏高。所以短时误差的根因不是容量不够，而是**纯谱算子对局部陡前沿与非周期边界缺乏表达能力**。
 
-## 本轮做什么（只给一个方案）
+## 本轮做什么（只做这一个）
 
-在核心光谱层 `SpectralConv1d` 里引入**频谱域补零（domain padding → FFT → 裁剪）**：做 rfft 之前把空间维右侧补零扩域到约 1.5×，irfft 之后再裁回原长。这能在不动网络拓扑、不新增可训练参数的前提下压低边界 Gibbs/混叠，直接针对 seg1 的陡锋。
-
-> 与 R1 的区别：R1 是在傅里叶层**并联一个空间域局部差分卷积**（加旁路、加参数，结果 STAGNANT）；本轮是改**频谱计算本身的边界处理**，不改拓扑、不加参数，机制完全不同，不是原样重提。
+在每个 Fourier 层里，给谱卷积分支旁**并联一条物理空间的小核卷积分支**（local operator），与谱输出相加后再激活。谱算子负责平滑的全局输运，小核卷积负责陡前缘/边界层的局部高频，两者互补，直接压制 seg1 的来源误差。
 
 ## 改哪里
 
-- 文件：`model.py`
-- 类/方法：`SpectralConv1d.forward`（FNO 的谱卷积层）
-- 具体：
-  - `__init__` 新增 `self.pad_ratio = 0.5`（可调 0.25/0.5）
-  - `forward` 内：在 `x_ft = torch.fft.rfft(x)` **之前**插入
-    ```python
-    N = x.shape[-1]
-    if self.pad_ratio > 0:
-        pad = int(self.pad_ratio * N)
-        x = F.pad(x, (0, pad))
-    ```
-  - 在 `out = torch.fft.irfft(out_ft, n=x.shape[-1])` **之后**插入
-    ```python
-    if self.pad_ratio > 0:
-        out = out[..., :N]
-    ```
-- 不改 `in_channels/out_channels`、不改 `model.forward` 的输入输出 shape、不动 `train.py`。
+只改 `model.py` 的 FNO 及其层封装，不动 `forward` 的 I/O shape。
 
-## 为什么（物理/数学依据）
+1. **在 FNO 的 `__init__` 中新增一个 ModuleList**（与现有 `w_layers` 同一层级）：
+   ```python
+   # 新增
+   self.loc_layers = nn.ModuleList([
+       nn.Conv1d(width, width, kernel_size=3, padding=1, padding_mode='reflect')
+       for _ in range(n_layers)
+   ])
+   ```
+   - `kernel_size=3, padding=1`（保持长度 1024 不变）
+   - `padding_mode='reflect'`：对应无流/Neumann 边界，避免 FFT 的周期性假设污染边界
+   - 若确认 x 方向是周期域，则改为 `padding_mode='circular'`
 
-FFT 隐含"场是周期的"这一假设。diffusion‑sorption 场在入口处有强梯度、域两端不满足周期性，相当于在频谱里引入边界阶跃 → Gibbs 振铃把能量漏到高频，模态截断又把这些高频丢掉，于是**陡锋处误差最大**，正好对应 seg1。补零扩域让真实场与"零背景"平滑衔接、把边界不连续推离信号支撑区，等效降低混叠与截断误差（这是 Li et al. FNO 原论文的 standard padding trick）。它只作用于谱计算内部，对已经光滑的 seg2/seg3 应基本中性，因此预期是"seg1 相对改善、seg2 持平"的定向效果。
+2. **在 FNO 的 `forward` 层循环里**，把每层更新
+   ```
+   x = F.gelu(spectral_layer(x) + w_layer(x))
+   ```
+   改成
+   ```
+   x = F.gelu(spectral_layer(x) + w_layer(x) + self.loc_layers[i](x))
+   ```
+   （若现有实现是把 `w` 作为残差直连 `x + spectral`，则把 `loc` 同样加到该残差上，位置在激活之前。）
+
+参数量增量：每层 `3×width×width`，对 width~几十而言可忽略；1D、kernel=3 的卷积计算量极小，**不影响 <2min 推理约束**。
+
+## 为什么（数学/物理依据）
+
+- **FNO 的谱偏置**：截断 modes 的谱卷积本质是低通算子，对高频局部结构（陡前缘）系统性抹平——这是 FNO 处理 sharp/local feature 的已知缺陷，也是 U-FNO/TFNO 引入局部核的共同动机。
+- **FFT 的周期性假设**：本问题边界非周期（注入边界 + 无流边界），纯 FFT 在边界产生 Gibbs 伪振荡，误差在早时段边界层处最大 → 正好落在 seg1。
+- 小核卷积在物理空间、局部感受野、不依赖 FFT，既补上高频前沿，又绕开边界周期性假设，是“低频全局(谱) + 高频局部(卷积)”的正交分解，理论上与现有谱分支互补而非重复。
 
 ## 怎么验证
 
-- 主指标 **seg1**：预期下降，目标相对改善 >10%（以 R1 的 10% 噪声阈值为对照，超过才算真信号）。
-- **seg2**：应基本持平；若 seg2 掉 >10%，说明补零改变了幅值/尺度标定，则把 `pad_ratio` 回退到 0.25 再试一次。
-- **overall** 不得上升（作为护栏）。
-- **推理时间**：补零使 FFT 长度最多 2×，谱层开销约 +30–40%，需确认整体仍 <2min。
-- 若再次 STAGNANT：这本身就是一个有价值的结论 —— 说明 1e-6 已是精度地板、该方向的瓶颈不在精度，应把杠杆切到**效率/推理时间**一侧（属于另一类假说，本轮不展开）。
+主看 **seg1**：预期下降 ≥10%（overall 随之下降）。**seg2** 预期持平或小幅改善；若 seg2 相对当前 3.78e-6 恶化超过 10%，说明局部分支抢占了谱分支的平滑输运、rollout 更不稳，需回退（例如把 `loc` 换成 kernel=1 的纯逐点）。同时确认无 NaN、训练步时间增幅在可接受范围。

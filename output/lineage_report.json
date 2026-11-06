@@ -1,14 +1,14 @@
 {
-  "best_snapshot": "snap:round2_best",
+  "best_snapshot": "snap:round1_best",
   "lineage": [
     "snap:phase0_fno",
-    "snap:round2_pre",
-    "snap:round2_best"
+    "snap:round1_pre",
+    "snap:round1_best"
   ],
   "roots": [
     "snap:phase0_fno"
   ],
   "contaminated_outcomes": {},
-  "node_count": 21,
-  "edge_count": 13
+  "node_count": 40,
+  "edge_count": 27
 }

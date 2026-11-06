@@ -1,0 +1,55 @@
+本轮严格按诊断执行**单点改动**：只提高 FNO 的 Fourier 模态数 `modes`，12 → 24。
+
+**理由回顾（不重复堆容量）**：seg1 残差最大且随段号递减，说明误差集中在扩散早期——锋面尚未被抹平，场里有陡峭空间梯度。`SpectralConv1d` 把场截断到前 `modes` 个 Fourier 模态，等效低通截止波数 `k_c = modes·(2π/L)`。1024 网格、早期锋面有效宽度 ≈ 20 格点（δ/L ≈ 1/50）时，需 `M ≳ 25` 才能分辨，当前 M=12 只能覆盖 δ/L ≈ 1/24 的尺度，正好把早期锋面抹钝。提到 24 补齐这段缺口，且不加层、不改 width、不加分支（避免重演 R2「一次改 5 处 → 停滞回退」）。
+
+**为什么只改默认值就够**：`SpectralConv1d` 的权重张量是 `torch.rand(in, out, self.modes1)`，在 `FNO1d.__init__` 里按传入的 `modes` 现场实例化（`self.conv0..3 = SpectralConv1d(width, width, self.modes1)`），所以 `self.modes1 = modes` 一变，四个 spectral 层的权重形状与初始化自动按新模态数重算，不存在旧 shape 残留。I/O shape 完全不变：输入 `(B, N, T_in)`，`fc0` 输出宽度仍为 `width=32`；spectral 层只改频域截断宽度，`irfft(n=x.size(-1))` 保证空间长度不变，`F.pad/padding` 后照旧裁回 → 输出仍 `(B, N, 1)`。rfft 在 1026 长度上给出 514 个频点，`modes=24` 远小于该上界，安全。
+
+```python
+FILE: model.py
+<<<<<<< SEARCH
+    def __init__(self, num_channels, modes=12, width=32, initial_step=10):
+        super().__init__()
+
+        """
+        The overall network. It contains 4 layers of the Fourier layer.
+        1. Lift the input to the desire channel dimension by self.fc0 .
+        2. 4 layers of the integral operators u' = (W + K)(u).
+            W defined by self.w; K defined by self.conv .
+        3. Project from the channel space to the output space by self.fc1 and self.fc2 .
+
+        input: the solution of the initial condition and location (a(x), x)
+        input shape: (batchsize, x=s, c=2)
+        output: the solution of a later timestep
+        output shape: (batchsize, x=s, c=1)
+        """
+
+        self.modes1 = modes
+=======
+    def __init__(self, num_channels, modes=24, width=32, initial_step=10):
+        super().__init__()
+
+        """
+        The overall network. It contains 4 layers of the Fourier layer.
+        1. Lift the input to the desire channel dimension by self.fc0 .
+        2. 4 layers of the integral operators u' = (W + K)(u).
+            W defined by self.w; K defined by self.conv .
+        3. Project from the channel space to the output space by self.fc1 and self.fc2 .
+
+        input: the solution of the initial condition and location (a(x), x)
+        input shape: (batchsize, x=s, c=2)
+        output: the solution of a later timestep
+        output shape: (batchsize, x=s, c=1)
+        """
+
+        # modes raised 12 -> 24 so the spectral low-pass cutoff resolves the
+        # early-time diffusion front (effective width ~20 grid points on N=1024).
+        self.modes1 = modes
+```
+
+**改动内容**：`FNO1d.__init__` 的 `modes` 默认值 `12 → 24`，并在 `self.modes1 = modes` 上方加一行注释说明依据。除此之外**未动任何一行**：`width=32`、4 层 `SpectralConv1d` + 4 层 `w*` 的 1×1 旁路、`local_conv` depthwise 高频旁路、`gamma`、`fc1/fc2` 都保持原样。
+
+**shape 自检**：`x = torch.randn(2, 256, 10)`，`grid` 同 N 维 → `fc0` → `(2,256,32)` → permute → `(2,32,256)` → pad → `(2,32,258)` → spectral（modes=24，rfft 频点 130>24 ✓）→ 裁剪回 `(2,32,256)` → `fc2` → `(2,256,1)`。`N` 未变，`out_channels=1` 未变。
+
+**验证预案**（与假说一致）：主看 seg1，预期 5.70e-06 → <5.1e-06（≥10%）；seg2 预期持平或轻微改善；seg3 维持 0 不参与判据；overall 应同向改善。若 seg1 未降 >10%，或 seg2 退化 >10%（说明 24 模态开始拟合高频数值噪声/边界 Gibbs 伪影），立即回退到 modes=12，并下一轮转向「输入 taper/padding + 局部 1×1 残差旁路」的 P1 路线，而不是继续加模态。
+
+> 提示：若 train.py 显式传了 `modes=12`，则本改动不会生效——届时应把传参处一并改掉或告知我在 `FNO1d` 内部加钳位。请留意首轮日志里 spectral 权重形状是否为 `[32, 32, 24]` 以确认生效。

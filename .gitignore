@@ -16,3 +16,5 @@ output/final_eval/
 output/archive/
 output/run_*.log
 output/run.logpath
+# _copy_template 每次运行从模板生成
+agent/utils.py

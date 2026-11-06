@@ -1,0 +1,63 @@
+## 错误类型
+
+**code_syntax — 但根因不是模型代码，而是候选补丁本身格式错误（parse/apply 失败）**
+
+---
+
+## 根因定位
+
+关键证据有三条，互相印证：
+
+1. **错误日志为空**（traceback 为 ` ``` ` 空块）——真正的 Python `SyntaxError` 一定会带 `File "model.py", line N` 的 traceback。空日志说明报错发生在**导入/编译之前**，即编辑器对候选内容做语法校验时就失败了。
+2. **`R4 edit: 0 处修改`** —— 补丁**没有落盘**。model.py 仍是旧版本，旧版本在 R1 已经跑通（overall 4.77e-06），它不可能是语法错误源。所以「语法错误」的载体只能是**候选文本本身**。
+3. **候选文本里带有 diff 冲突标记**：当前 model.py 内容以 `<<<<<<< SEARCH` 开头、以 `>>>>>>> `（末尾一个空格，**没有 `REPLACE` 标签**）结尾。这个闭合标记格式非法 → 解析器无法闭合该 hunk → 整个 edit 被判为不可应用（0 处修改）；而在候选内容被送去语法检查时，`<<<<<<< SEARCH` / `=======` / `>>>>>>>` 这三行是**非法 Python**，直接触发 SyntaxError。
+
+一句话根因：**补丁的结束标记写成了 `>>>>>>> ` 而不是 `>>>>>>> REPLACE`，导致 hunk 无法闭合——既没应用成功，又让候选文本自己成了一坨语法错误代码。**
+
+另外一个加重因素：这个补丁把**14 行 docstring 原样重打了一遍**（SEARCH / REPLACE 两侧完全相同），只为了改 `modes=12` 这 5 个字符。重打篇幅越长，标记出错和空白字符不匹配的概率越高。
+
+---
+
+## 怎么修
+
+**第 0 步（先确认污染）**：检查 model.py 是否已经被写入了冲突标记：
+
+```bash
+grep -n '<<<<<<<\|=======\|>>>>>>>' model.py
+```
+
+- 若无输出：文件是干净的，直接做第 1 步。
+- 若有输出：说明标记已落盘，先把这几行删掉、恢复 `def __init__(self, num_channels, modes=12, width=32, initial_step=10):`，再执行第 1 步。
+
+**第 1 步（最小补丁，只改 1 行，不重打 docstring）**：
+
+```python
+FILE: model.py
+<<<<<<< SEARCH
+    def __init__(self, num_channels, modes=12, width=32, initial_step=10):
+=======
+    def __init__(self, num_channels, modes=24, width=32, initial_step=10):
+>>>>>>> REPLACE
+```
+
+**唯一的改动就是结束标记：`>>>>>>> ` → `>>>>>>> REPLACE`**（`REPLACE` 大写、标记后不留内容），同时把 hunk 从 14 行压到 1 行。
+
+**第 2 步（验证）**：
+
+```bash
+python -c "import ast,sys; ast.parse(open('model.py').read()); print('syntax ok')"
+grep -n 'modes=24' model.py      # 应命中 1 处
+```
+
+然后确认 `SpectralConv1d` 侧无需同步改：`modes` 是通过 `self.modes1 = modes` → 传给 `SpectralConv1d(modes1=self.modes1, ...)` 的，权重形状 `(in, out, modes1//2+1) = (in, out, 13)` 对 N=1024 合法（上限 N//2+1=513），不存在隐藏的 modes 常量需要一起改。
+
+---
+
+## 是否该放弃本次修改
+
+**不需要重新提方案。** 这是纯粹的补丁格式 bug（1 个标记 + 冗长 hunk），与 FNO 架构容量无关，内循环重发一次补丁即可。
+
+两点提醒 Captain：
+
+- **`modes 12→24` 这个改动本身还没被验证过**（R4 是 0 处修改，等于没跑）。R1 已经把整体从 5.649e-06 压到 4.771e-06，当前最优 `best_phase2.pt` 是 modes=12 的产物。这次 rerun 要按正常 eval 判定，别把「补丁格式修好了」当成「指标改善了」。
+- **seg3 的 baseline 是 0.0**，三个段里它永远不可判定；R3 的 MIXED 判定里 seg1 +14.6% / seg2 −14.6% 是典型的噪声内互抵。本次只看 overall 与 seg1，并把 seg2 的 3.7753e-06 作为硬底线守住即可。

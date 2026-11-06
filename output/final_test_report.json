@@ -1,42 +1,40 @@
 {
-  "test_data": "output/data_splits/1D_diff-sorp_NA_NA/test.h5",
-  "note": "evaluate.py 修复后重算（no_gt 未绑定 / sys.path / 缺少归一化 / infer_time_s 变量名）",
-  "samples_evaluated": 100,
+  "test_data": "/home/apde/pde_project/interim report/output/data_splits/1D_diff-sorp_NA_NA/test.h5",
   "results": {
     "baseline": {
       "model_class": "FNO1d",
-      "snapshot": "phase0_fno",
+      "checkpoint": "/home/apde/pde_project/interim report/output/runs/phase0_fno/best_phase2.pt",
       "metrics": {
-        "seg1": 6.912986464158166e-06,
-        "seg2": 5.547687123907963e-06,
+        "seg1": 6.4458731685590465e-06,
+        "seg2": 4.7605999498046e-06,
         "seg3": 0.0,
-        "overall": 6.25284201305476e-06
+        "overall": 5.631015483231749e-06
       },
       "scores": {
         "pred_score": 75.0,
         "train_score": 35,
-        "infer_score": 40,
-        "total": 150.0,
+        "infer_score": 0,
+        "total": 110.0,
         "max_total": 150,
         "seg1_score": 99.99,
-        "seg2_score": 99.99,
+        "seg2_score": 100.0,
         "seg3_score": 100.0
       }
     },
     "evolved": {
       "model_class": "FNO1d",
-      "snapshot": "round2_best",
+      "checkpoint": "/home/apde/pde_project/interim report/output/runs/round1/best_phase2.pt",
       "metrics": {
-        "seg1": 4.774971785082016e-06,
-        "seg2": 2.984633511005086e-06,
+        "seg1": 5.578750460699666e-06,
+        "seg2": 3.889103027177043e-06,
         "seg3": 0.0,
-        "overall": 3.909313818439841e-06
+        "overall": 4.761778200190747e-06
       },
       "scores": {
         "pred_score": 75.0,
         "train_score": 35,
-        "infer_score": 40,
-        "total": 150.0,
+        "infer_score": 0,
+        "total": 110.0,
         "max_total": 150,
         "seg1_score": 99.99,
         "seg2_score": 100.0,
@@ -45,9 +43,9 @@
     }
   },
   "delta_rel": {
-    "overall": -0.37479408398965974,
-    "seg1": -0.30927511433172006,
-    "seg2": -0.46200399475617554,
+    "overall": -0.15436599058010936,
+    "seg1": -0.13452369992151467,
+    "seg2": -0.18306451535868454,
     "seg3": null
   },
   "same_model_class": true,

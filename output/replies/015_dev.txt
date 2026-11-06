@@ -1,0 +1,89 @@
+## 本轮改动说明
+
+先说一个关键观察：**当前 model.py 里其实已经存在这条深度可分离局部卷积旁路**了（R1 加的 `self.local_conv` + `self.gamma = 0.1`），`forward` 里的形式也已经是 `x = x1 + x2 + self.gamma * self.local_conv(x)`，正好是假说描述的 `spectral + w + gate * local`。所以这条支路**不需要再新增一份**（否则会重复叠加）。
+
+本轮真正要落地的、也是假说标为「关键」的那一点，是**把门控改成零初始化**：
+- 把原来 `gamma = 0.1`（非零、R1 用的固定偏置起点）改成 `hf_gate = torch.zeros(1)` 的可学习零初始化门控。
+- 初始时刻 `hf_gate = 0`，旁路贡献为 0，网络行为等价于纯低通 FNO；只有当「高频细节确实能降低总损失」时，优化器才会把 gate 推离 0 —— 这正是假说要的**单调安全的高频容量注入**，不会像 R3 那样牺牲 seg1 换 seg2。
+- 名字改成 `hf_gate` 也顺便对上了假说的验证方案（训练后打印各层 `hf_gate`）。
+
+关于 checkpoint 兼容性：R2 已经改过 `width`/`modes`（参数量、张量形状都变了）却仍能训练出指标，说明 train.py 是 **from-scratch 或非严格加载**，不会因参数改名而崩溃；即便非严格加载，`hf_gate` 是 checkpoint 里没有的新键，会保持 0 初始化，行为正好符合「门控=0 起步」。
+
+I/O、激活、残差、padding、`fc1/fc2` 输出全部不动，输入 `(B,N,T_in)` → 输出 `(B,N,1)`，空间分辨率 N 不变。`local_conv` 保持 `kernel_size=3, padding=1, groups=width`（不改结构、不改 bias），只改门控。
+
+共 5 处：1 处 `__init__`，4 处 `forward`（4 个傅里叶层各一处）。
+
+```python
+FILE: model.py
+<<<<<<< SEARCH
+        self.local_conv = nn.Conv1d(
+            self.width, self.width, kernel_size=3, padding=1, groups=self.width
+        )
+        self.gamma = nn.Parameter(torch.tensor(0.1))
+=======
+        self.local_conv = nn.Conv1d(
+            self.width, self.width, kernel_size=3, padding=1, groups=self.width
+        )
+        # Zero-initialized learnable gate for the high-frequency bypass.
+        # At init hf_gate=0 -> the model behaves exactly like the pure
+        # low-pass FNO; training opens the bypass only if the local
+        # (high-wavenumber / boundary-layer) detail actually helps.
+        self.hf_gate = nn.Parameter(torch.zeros(1))
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
+=======
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x = x + self.hf_gate * self.local_conv(x)
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
+=======
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x = x + self.hf_gate * self.local_conv(x)
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
+=======
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x = x + self.hf_gate * self.local_conv(x)
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+        x = x + self.gamma * self.local_conv(x)
+=======
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+        x = x + self.hf_gate * self.local_conv(x)
+>>>>>>> REPLACE
+```
+
+改动后自检：
+- `forward(x, grid)` 签名不变，`x` 经 `fc0`→permute→pad→4 层→unpad→permute→`fc1/fc2`，最后 `unsqueeze(-2)`，输出仍是 `(B, N, 1)`，空间维 N 完全不变。
+- `local_conv` 是 depthwise（`groups=width`，`kernel_size=3, padding=1`），不改变序列长度 N。
+- 新增参数只有 `hf_gate`（1 个 float），模型规模、能力基本不变。
+- 初始 `hf_gate=0`，旁路对输出零贡献，起步行为 = 纯低通 FNO，安全。
+
+反向判据（若 seg1 未降而 seg2 变差或 overall 上升超阈值）回退：把 4 处 `+ self.hf_gate * self.local_conv(x)` 删掉即可，其余不动。

@@ -1,0 +1,41 @@
+## 本轮改动说明
+
+先说明一个关键观察：当前 `model.py` 里**已经有一条局部支路**（R2 引入，`kernel_size=3, groups=width` 的深度可分离卷积 + `gamma=0.1`），只是 R2 整体被判为 STAGNANT 并回退。既然这条支路已在文件里，本轮我不新增一条分支（那会重复 R2 路径），而是**把这条已有支路升级成 R3 假说要求的形态**，从根上改变它的训练轨迹：
+
+1. **kernel 3 → 5**：更大的局部 stencil，感受野更接近二阶差分，覆盖陡锋面的过渡带。
+2. **depthwise(groups=width) → 全通道卷积**：允许通道间混合，锋面信息能在特征通道间组合（R2 的逐通道卷积无法跨通道重建锋面）。
+3. **随机初始化 → 零初始化（weight+bias）**：这是与 R2 最本质的区别。R2 用随机权重 + `gamma=0.1`，初始时局部支路相当于往谱支路输出上叠加 0.1×噪声，很可能就是 STAGNANT 的来源；零初始化让局部支路在起点严格等于 0，训练**从 R1 已验证的纯谱行为出发**，增量地学出锋面修正，不破坏全局平滑输运。
+4. **gamma 0.1 → 1.0 且保留为可学习标量**：权重已是零初始化，初始贡献本就为 0；把 gamma 设为可学习门控，让优化器自行权衡"局部锋面 vs 全局平滑"，直接对应假说里"seg1 改善但 seg2 回退则加门控"的兜底手段。
+
+**I/O shape 检查**：`local_conv` 用 `kernel_size=5, stride=1, padding=2`，输入长度保持不变；`forward` 里原本就是 `x = x + self.gamma * self.local_conv(x)`（残差形式），kernel 换了但签名不变，4 个 block 全部长度守恒，`F.pad` 右补 2 / 尾部切 2 的逻辑不动。输出仍是 `(B, N, 1)`，`train.py`、损失、数据管线一律不动。
+
+因此本轮**只改 `__init__` 里的局部支路定义一处**，`forward` 无需改动。
+
+FILE: model.py
+<<<<<<< SEARCH
+        # Local depthwise conv branch (high-frequency bypass) to compensate
+        # the low-pass truncation of the spectral convolution at sharp fronts.
+        self.local_conv = nn.Conv1d(
+            self.width, self.width, kernel_size=3, padding=1, groups=self.width
+        )
+        self.gamma = nn.Parameter(torch.tensor(0.1))
+=======
+        # Local conv stencil branch (finite-difference-like) running in parallel
+        # with the spectral branch. It compensates the low-pass truncation of
+        # the spectral convolution at sharp fronts (Freundlich sorption creates
+        # sharp concentration fronts) and handles non-periodic boundaries
+        # without the FFT periodic wrap-around. k=5 / pad=2 => length N kept.
+        self.local_conv = nn.Conv1d(
+            self.width, self.width, kernel_size=5, stride=1, padding=2
+        )
+        # Zero-init so the local branch starts as an identity-preserving
+        # perturbation (adds exactly 0 at init) and grows incrementally; i.e.
+        # training begins from the verified R1 pure-spectral behavior.
+        nn.init.zeros_(self.local_conv.weight)
+        nn.init.zeros_(self.local_conv.bias)
+        # Learnable gate so the optimizer can self-regulate how strongly the
+        # local (sharp-front) branch mixes with the global spectral transport.
+        self.gamma = nn.Parameter(torch.tensor(1.0))
+>>>>>>> REPLACE
+
+改完后文件哈希会变化（kernel、groups、初始化、gamma 均不同），可以启动训练。主看 seg1 是否较 5.70e-06 下降 ≥10%，并确认 seg2 不跌超 10%。
